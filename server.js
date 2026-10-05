@@ -22,6 +22,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// API endpoint to get Google Client ID (to avoid hardcoding in frontend)
+app.get('/api/config', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
+  res.json({ 
+    googleClientId: clientId,
+    apiUrl: process.env.API_URL || 'http://localhost:3000'
+  });
+});
+
 // Google OAuth Callback
 app.get('/auth/callback', async (req, res) => {
   const { code, error } = req.query;
