@@ -4,6 +4,8 @@ primary_region = "sin"
 [env]
 NODE_ENV = "production"
 PORT = "3000"
+GOOGLE_CLIENT_ID = "529180440880-bi2adu90l55pooo5epebd6sh673pkdhe.apps.googleusercontent.com"
+API_URL = "https://expense-calculator.fly.dev"
 
 [build]
 dockerfile = "Dockerfile"
