@@ -68,6 +68,7 @@ const PERSISTENT = DATA_DIR === '/data' || !!process.env.DATA_DIR;
 let db = { users: [], secret: null };
 try { db = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { /* first run */ }
 if (!db.secret) db.secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+db.users = db.users || []; db.households = db.households || []; db.expenses = db.expenses || []; db.invites = db.invites || [];
 function saveDb() {
   const tmp = USERS_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
@@ -108,6 +109,17 @@ function verifyToken(tok, type) {
   } catch { return null; }
 }
 const SESSION_TTL = 30 * 24 * 3600e3;
+function newHousehold(u) {
+  const h = { id: crypto.randomUUID(), name: (u.name || '').split(' ')[0] + '’s household', ownerId: u.id, createdAt: new Date().toISOString() };
+  db.households.push(h); u.householdId = h.id;
+  return h;
+}
+function ensureHousehold(u) {
+  let h = u.householdId && db.households.find(x => x.id === u.householdId);
+  if (!h) { h = newHousehold(u); saveDb(); }
+  return h;
+}
+db.users.forEach(ensureHousehold);   // migrate accounts created before households existed
 function sessionFor(u) { return { token: sign({ t: 'session', uid: u.id }, SESSION_TTL), user: publicUser(u) }; }
 function authUser(req) {
   const p = verifyToken((req.headers.authorization || '').replace(/^Bearer\s+/i, ''), 'session');
@@ -245,7 +257,7 @@ app.post('/api/signup', (req, res) => {
   if (findByEmail(email)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
   const u = { id: crypto.randomUUID(), name, email, phone: p.phone, createdAt: new Date().toISOString() };
   if (password) { const h = hashPassword(password); u.salt = h.salt; u.passwordHash = h.hash; }
-  db.users.push(u); saveDb();
+  db.users.push(u); newHousehold(u); saveDb();
   console.log(`👤 New account: ••${u.phone.slice(-4)}`);
   res.json(sessionFor(u));
 });
@@ -290,6 +302,178 @@ app.post('/api/me/password', (req, res) => {
   if (u.passwordHash && !checkPassword(String(req.body.current || ''), u)) return res.status(401).json({ error: 'Current password is incorrect.' });
   const h = hashPassword(pw); u.salt = h.salt; u.passwordHash = h.hash; saveDb();
   res.json({ ok: true, user: publicUser(u) });
+});
+
+
+// ================= HOUSEHOLD + EXPENSES =================
+const MAX_MEMBERS = 10;
+const membersOf = hid => db.users.filter(x => x.householdId === hid);
+const maskPhone = p => p ? '••••• ' + p.slice(-5) : '';
+function requireUser(req, res) {
+  const u = authUser(req);
+  if (!u) { res.status(401).json({ error: 'Not logged in' }); return null; }
+  ensureHousehold(u);
+  return u;
+}
+function invitesFor(u) {
+  return db.invites.filter(i => i.status === 'pending' && i.householdId !== u.householdId &&
+    ((i.phone && i.phone === u.phone) || (i.email && i.email === u.email)));
+}
+function householdView(u) {
+  const h = ensureHousehold(u);
+  const isOwner = h.ownerId === u.id;
+  return {
+    household: { id: h.id, name: h.name, isOwner },
+    members: membersOf(h.id).map(m => ({ id: m.id, name: m.name, email: m.email, phone: m.id === u.id ? m.phone : maskPhone(m.phone), role: m.id === h.ownerId ? 'owner' : 'member', you: m.id === u.id }))
+      .sort((a, b) => (b.role === 'owner') - (a.role === 'owner') || a.name.localeCompare(b.name)),
+    pending: db.invites.filter(i => i.householdId === h.id && i.status === 'pending').map(i => ({ id: i.id, to: i.phone ? '+91 ' + i.phone : i.email, createdAt: i.createdAt })),
+    incoming: invitesFor(u).map(i => {
+      const hh = db.households.find(x => x.id === i.householdId); const by = db.users.find(x => x.id === i.invitedBy);
+      return { id: i.id, household: hh ? hh.name : 'a household', from: by ? by.name : 'Someone', members: hh ? membersOf(hh.id).length : 0 };
+    }).filter(i => i.members > 0),
+  };
+}
+function moveUser(u, targetHid) {
+  db.expenses.forEach(e => { if (e.userId === u.id) e.householdId = targetHid; });
+  u.householdId = targetHid;
+}
+// When someone leaves, the household keeps going; if the owner leaves, the longest-standing member takes over
+function afterDeparture(hid, leavingId) {
+  const h = db.households.find(x => x.id === hid); if (!h) return;
+  const rest = membersOf(hid).filter(m => m.id !== leavingId);
+  if (!rest.length) { db.households = db.households.filter(x => x.id !== hid); db.invites = db.invites.filter(i => i.householdId !== hid); return; }
+  if (h.ownerId === leavingId) h.ownerId = rest.sort((a, b) => (a.joinedAt || a.createdAt).localeCompare(b.joinedAt || b.createdAt))[0].id;
+}
+
+app.get('/api/household', (req, res) => { const u = requireUser(req, res); if (u) res.json(householdView(u)); });
+
+app.patch('/api/household', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const h = ensureHousehold(u);
+  if (h.ownerId !== u.id) return res.status(403).json({ error: 'Only the household owner can rename it.' });
+  const name = String((req.body && req.body.name) || '').trim().slice(0, 50);
+  if (name.length < 2) return res.status(400).json({ error: 'Enter a household name.' });
+  h.name = name; saveDb(); res.json(householdView(u));
+});
+
+app.post('/api/household/invite', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const h = ensureHousehold(u);
+  if (h.ownerId !== u.id) return res.status(403).json({ error: 'Only the household owner can invite people.' });
+  const raw = String((req.body && req.body.identifier) || '').trim();
+  const phone = normalizePhone(raw);
+  const email = !phone && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw) ? raw.toLowerCase() : null;
+  if (!phone && !email) return res.status(400).json({ error: 'Enter a 10-digit mobile number or an email address.' });
+  if ((phone && phone === u.phone) || (email && email === u.email)) return res.status(400).json({ error: 'That’s you.' });
+  const existing = phone ? findByPhone(phone) : findByEmail(email);
+  if (existing && existing.householdId === h.id) return res.status(409).json({ error: (existing.name || 'This person') + ' is already in your household.' });
+  if (membersOf(h.id).length >= MAX_MEMBERS) return res.status(400).json({ error: 'A household can have up to ' + MAX_MEMBERS + ' people.' });
+  if (db.invites.filter(i => i.householdId === h.id && i.status === 'pending').length >= 20) return res.status(400).json({ error: 'Too many pending invites. Cancel some first.' });
+  const dup = db.invites.find(i => i.householdId === h.id && i.status === 'pending' && ((phone && i.phone === phone) || (email && i.email === email)));
+  if (!dup) db.invites.push({ id: crypto.randomUUID(), householdId: h.id, phone, email, invitedBy: u.id, status: 'pending', createdAt: new Date().toISOString() });
+  saveDb();
+  res.json({ ...householdView(u), invitedHasAccount: !!existing });
+});
+
+app.delete('/api/household/invite/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const i = db.invites.find(x => x.id === req.params.id && x.householdId === u.householdId && x.status === 'pending');
+  if (!i) return res.status(404).json({ error: 'Invite not found.' });
+  if (ensureHousehold(u).ownerId !== u.id) return res.status(403).json({ error: 'Only the owner can cancel invites.' });
+  i.status = 'cancelled'; saveDb(); res.json(householdView(u));
+});
+
+app.post('/api/invites/:id/:action', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const i = invitesFor(u).find(x => x.id === req.params.id);
+  if (!i) return res.status(404).json({ error: 'This invite is no longer available.' });
+  if (req.params.action === 'decline') { i.status = 'declined'; saveDb(); return res.json(householdView(u)); }
+  if (req.params.action !== 'accept') return res.status(400).json({ error: 'Unknown action' });
+  const target = db.households.find(x => x.id === i.householdId);
+  if (!target || !membersOf(target.id).length) { i.status = 'cancelled'; saveDb(); return res.status(410).json({ error: 'That household no longer exists.' }); }
+  if (membersOf(target.id).length >= MAX_MEMBERS) return res.status(400).json({ error: 'That household is full.' });
+  const old = u.householdId;
+  moveUser(u, target.id); u.joinedAt = new Date().toISOString();
+  afterDeparture(old, u.id);
+  i.status = 'accepted';
+  db.invites.forEach(x => { if (x !== i && x.status === 'pending' && ((x.phone && x.phone === u.phone) || (x.email && x.email === u.email))) x.status = 'superseded'; });
+  saveDb(); res.json(householdView(u));
+});
+
+app.post('/api/household/leave', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const old = u.householdId;
+  if (membersOf(old).length <= 1) return res.status(400).json({ error: 'You’re the only person in this household.' });
+  const h = { id: crypto.randomUUID(), name: (u.name || '').split(' ')[0] + '’s household', ownerId: u.id, createdAt: new Date().toISOString() };
+  db.households.push(h);
+  moveUser(u, h.id); afterDeparture(old, u.id);
+  saveDb(); res.json(householdView(u));
+});
+
+app.delete('/api/household/members/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const h = ensureHousehold(u);
+  if (h.ownerId !== u.id) return res.status(403).json({ error: 'Only the household owner can remove people.' });
+  const m = membersOf(h.id).find(x => x.id === req.params.id);
+  if (!m || m.id === u.id) return res.status(404).json({ error: 'Member not found.' });
+  moveUser(m, newHousehold(m).id);
+  saveDb(); res.json(householdView(u));
+});
+
+// ---- expenses (shared by the whole household) ----
+const CURRENCIES = new Set(['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'THB', 'JPY']);
+function cleanExpense(b) {
+  const amount = Number(b.amount);
+  if (!isFinite(amount) || amount === 0 || Math.abs(amount) > 1e9) return { error: 'Enter a valid amount.' };
+  const currency = String(b.currency || 'INR').toUpperCase();
+  if (!CURRENCIES.has(currency)) return { error: 'Unsupported currency.' };
+  const date = String(b.date || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'Pick a valid date.' };
+  return { value: {
+    amount: Math.round(amount * 100) / 100, currency, date,
+    category: String(b.category || 'Other').slice(0, 40),
+    payment: String(b.payment || '').trim().slice(0, 60),
+    note: String(b.note || '').trim().slice(0, 140),
+  } };
+}
+const expenseOut = e => ({ id: e.id, userId: e.userId, amount: e.amount, currency: e.currency, date: e.date, category: e.category, payment: e.payment, note: e.note, createdAt: e.createdAt });
+
+app.get('/api/expenses', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  res.json({ expenses: db.expenses.filter(e => e.householdId === u.householdId).map(expenseOut), ...householdView(u) });
+});
+
+app.post('/api/expenses', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const c = cleanExpense(req.body || {}); if (c.error) return res.status(400).json({ error: c.error });
+  const e = { id: crypto.randomUUID(), householdId: u.householdId, userId: u.id, ...c.value, createdAt: new Date().toISOString() };
+  db.expenses.push(e); saveDb(); res.json({ expense: expenseOut(e) });
+});
+
+// one-time upload of expenses that were saved in the browser before server storage existed
+app.post('/api/expenses/import', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const list = Array.isArray(req.body && req.body.expenses) ? req.body.expenses.slice(0, 5000) : [];
+  const have = new Set(db.expenses.filter(e => e.userId === u.id && e.clientId).map(e => e.clientId));
+  let added = 0;
+  for (const raw of list) {
+    const cid = String(raw.id || '').slice(0, 64);
+    if (cid && have.has(cid)) continue;
+    const c = cleanExpense(raw); if (c.error) continue;
+    db.expenses.push({ id: crypto.randomUUID(), clientId: cid || undefined, householdId: u.householdId, userId: u.id, ...c.value, createdAt: new Date().toISOString() });
+    if (cid) have.add(cid); added++;
+  }
+  if (added) saveDb();
+  res.json({ added });
+});
+
+app.delete('/api/expenses/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const e = db.expenses.find(x => x.id === req.params.id && x.householdId === u.householdId);
+  if (!e) return res.status(404).json({ error: 'Expense not found.' });
+  const h = ensureHousehold(u);
+  if (e.userId !== u.id && h.ownerId !== u.id) return res.status(403).json({ error: 'Only the person who added it (or the household owner) can delete this.' });
+  db.expenses = db.expenses.filter(x => x !== e); saveDb(); res.json({ ok: true });
 });
 
 // Catch-all for SPA routing
