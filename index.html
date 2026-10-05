@@ -671,18 +671,23 @@
     </div>
 
     <script>
-        let GOOGLE_CLIENT_ID = null;
+        let GOOGLE_CLIENT_ID = '529180440880-1jthe4420bcdqnkoslt98egu9ms06vj.apps.googleusercontent.com';
 
         // Fetch Google Client ID from backend on page load
         async function fetchConfig() {
             try {
                 const response = await fetch('/api/config');
                 const data = await response.json();
-                GOOGLE_CLIENT_ID = data.googleClientId;
-                console.log('✅ Loaded Google Client ID from backend');
+                console.log('📋 Config from backend:', data);
+                if (data.googleClientId && data.googleClientId !== 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+                    GOOGLE_CLIENT_ID = data.googleClientId;
+                    console.log('✅ Updated Client ID from backend');
+                } else {
+                    console.log('⚠️ Backend returned fallback, using hardcoded Client ID');
+                }
             } catch (err) {
                 console.error('❌ Failed to fetch config:', err);
-                alert('Failed to load configuration. Please refresh the page.');
+                console.log('⚠️ Using hardcoded Client ID as fallback');
             }
         }
 
