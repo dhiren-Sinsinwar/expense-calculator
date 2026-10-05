@@ -89,6 +89,7 @@
 
         .feature { text-align: center; }
         .feature-icon { font-size: 40px; margin-bottom: 10px; }
+        .feature-logo { height: 40px; width: auto; margin: 0 auto 10px; }
         .feature-name { font-size: 14px; font-weight: 600; }
 
         /* Modal */
@@ -312,6 +313,8 @@
 
         .empty { text-align: center; padding: 40px; color: var(--text-light); }
         .empty-icon { font-size: 64px; margin-bottom: 20px; }
+        
+        .feature-logo-container { display: flex; justify-content: center; margin: 0 auto; }
 
         @media (max-width: 768px) {
             .sidebar { width: 100%; padding: 20px; }
@@ -346,15 +349,21 @@
                 <button class="btn btn-signup" onclick="showModal('signup')">Get Started Free</button>
                 <div class="features">
                     <div class="feature">
-                        <div class="feature-icon">📧</div>
-                        <div class="feature-name">Gmail Sync</div>
+                        <div class="feature-logo-container">
+                            <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Gmail" class="feature-logo">
+                        </div>
+                        <div class="feature-name">Auto Sync</div>
                     </div>
                     <div class="feature">
-                        <div class="feature-icon">💱</div>
+                        <div class="feature-logo-container">
+                            <img src="https://ik.imagekit.io/credproject/Multi%20currency%20Logo" alt="Multi-Currency" class="feature-logo">
+                        </div>
                         <div class="feature-name">Multi-Currency</div>
                     </div>
                     <div class="feature">
-                        <div class="feature-icon">📊</div>
+                        <div class="feature-logo-container">
+                            <img src="https://ik.imagekit.io/credproject/Analytics%20logo" alt="Analytics" class="feature-logo">
+                        </div>
                         <div class="feature-name">Analytics</div>
                     </div>
                 </div>
@@ -437,7 +446,7 @@
                 <button class="nav-item active" onclick="switchPage('dashboard')">📊 Dashboard</button>
                 <button class="nav-item" onclick="switchPage('add')">➕ Add Expense</button>
                 <button class="nav-item" onclick="switchPage('expenses')">📝 Expenses</button>
-                <button class="nav-item" onclick="switchPage('gmail')">📧 Gmail Sync</button>
+                <button class="nav-item" onclick="switchPage('autosync')">🔄 Auto Sync Transactions</button>
                 <button class="nav-item" onclick="switchPage('analytics')">📈 Analytics</button>
             </div>
             <div class="user-section">
@@ -517,12 +526,14 @@
                 </div>
             </div>
 
-            <!-- Gmail -->
-            <div class="page" id="page-gmail">
+            <!-- Auto Sync Transactions -->
+            <div class="page" id="page-autosync">
                 <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 64px; margin-bottom: 20px;">📧</div>
-                    <h3 style="margin-bottom: 10px;">Gmail Integration</h3>
-                    <p style="color: #64748B; margin-bottom: 30px;">Connect your Gmail to auto-sync expenses from emails</p>
+                    <div style="margin-bottom: 20px;">
+                        <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Gmail" style="height: 80px; width: auto;">
+                    </div>
+                    <h3 style="margin-bottom: 10px;">Auto Sync Transactions</h3>
+                    <p style="color: #64748B; margin-bottom: 30px;">Connect your Gmail to automatically sync expenses from emails</p>
                     <button class="btn btn-signup">Connect Gmail</button>
                 </div>
             </div>
@@ -530,7 +541,9 @@
             <!-- Analytics -->
             <div class="page" id="page-analytics">
                 <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 64px; margin-bottom: 20px;">📈</div>
+                    <div style="margin-bottom: 20px;">
+                        <img src="https://ik.imagekit.io/credproject/Analytics%20logo" alt="Analytics" style="height: 80px; width: auto;">
+                    </div>
                     <h3 style="margin-bottom: 10px;">Analytics & Reports</h3>
                     <p style="color: #64748B;">Detailed spending insights coming soon</p>
                 </div>
@@ -661,7 +674,7 @@
                 'dashboard': 'Dashboard',
                 'add': 'Add Expense',
                 'expenses': 'My Expenses',
-                'gmail': 'Gmail Sync',
+                'autosync': 'Auto Sync Transactions',
                 'analytics': 'Analytics'
             };
             document.getElementById('pageTitle').textContent = titles[page];
