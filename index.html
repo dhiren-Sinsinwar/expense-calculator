@@ -23,7 +23,6 @@
         html, body {
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: white;
             color: var(--text);
         }
 
@@ -32,6 +31,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            background: linear-gradient(135deg, #2D2D5F 0%, #1A1A3F 50%, #3D3D6B 100%);
         }
 
         .landing.hide {
@@ -43,9 +43,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 60px;
-            background: white;
-            border-bottom: 1px solid var(--border);
+            padding: 24px 60px;
+            background: transparent;
+            border-bottom: none;
         }
 
         .logo {
@@ -53,22 +53,22 @@
             align-items: center;
             gap: 0;
             text-decoration: none;
-            color: var(--text);
+            color: white;
         }
 
         .logo img {
-            height: 64px;
-            width: 64px;
+            height: 70px;
+            width: 70px;
         }
 
         .nav-buttons {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             align-items: center;
         }
 
         .btn {
-            padding: 10px 24px;
+            padding: 12px 28px;
             border: none;
             border-radius: 8px;
             font-weight: 600;
@@ -78,24 +78,24 @@
         }
 
         .btn-login {
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
+            background: transparent;
+            color: white;
+            border: 2px solid white;
         }
 
         .btn-login:hover {
-            background: rgba(99, 102, 241, 0.05);
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .btn-signup {
-            background: var(--primary);
-            color: white;
+            background: white;
+            color: var(--primary);
         }
 
         .btn-signup:hover {
-            background: #4F46E5;
+            background: #f0f0ff;
             transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
 
         /* HERO */
@@ -105,36 +105,38 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 80px 40px;
+            padding: 60px 40px 100px;
             text-align: center;
+            color: white;
         }
 
         .hero-image {
-            height: 280px;
+            height: 300px;
             width: auto;
             margin-bottom: 60px;
             max-width: 100%;
+            filter: brightness(1.1);
         }
 
         .hero h1 {
-            font-size: 68px;
+            font-size: 72px;
             font-weight: 800;
             margin-bottom: 24px;
             line-height: 1.1;
             max-width: 1000px;
-            letter-spacing: -1px;
+            letter-spacing: -1.5px;
         }
 
         .hero p {
             font-size: 18px;
-            color: var(--text-light);
+            color: rgba(255, 255, 255, 0.8);
             margin-bottom: 48px;
             max-width: 600px;
             line-height: 1.6;
         }
 
         .cta-button {
-            margin-bottom: 100px;
+            margin-bottom: 0;
         }
 
         .cta-button .btn-signup {
@@ -142,11 +144,12 @@
             font-size: 16px;
         }
 
-        /* FEATURES */
+        /* FEATURES SECTION */
         .features-section {
             background: white;
-            padding: 60px 40px;
-            border-top: 1px solid var(--border);
+            padding: 80px 40px;
+            border-radius: 24px 24px 0 0;
+            margin-top: auto;
         }
 
         .features-container {
@@ -162,17 +165,17 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            gap: 20px;
+            gap: 16px;
         }
 
         .feature img {
-            height: 100px;
-            width: 100px;
+            height: 80px;
+            width: 80px;
             object-fit: contain;
         }
 
         .feature-name {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--text);
         }
@@ -191,7 +194,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             align-items: center;
             justify-content: center;
             z-index: 1000;
@@ -208,7 +211,7 @@
             width: 100%;
             max-width: 420px;
             position: relative;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             animation: slideIn 0.3s ease;
         }
 
@@ -455,8 +458,13 @@
                 padding: 16px 20px;
             }
 
+            .logo img {
+                height: 56px;
+                width: 56px;
+            }
+
             .hero {
-                padding: 40px 20px;
+                padding: 40px 20px 60px;
             }
 
             .hero h1 {
@@ -464,16 +472,12 @@
             }
 
             .hero-image {
-                height: 200px;
+                height: 220px;
                 margin-bottom: 40px;
             }
 
             .hero p {
                 font-size: 16px;
-            }
-
-            .cta-button {
-                margin-bottom: 60px;
             }
 
             .features-container {
@@ -482,7 +486,7 @@
             }
 
             .features-section {
-                padding: 40px 20px;
+                padding: 60px 20px;
             }
 
             .sidebar {
@@ -507,8 +511,8 @@
                 <img src="https://ik.imagekit.io/credproject/FME%20logo?updatedAt=1791181787599" alt="Find My Expense">
             </div>
             <div class="nav-buttons">
-                <button class="btn btn-login" onclick="openModal('login')">Login</button>
-                <button class="btn btn-signup" onclick="openModal('signup')">Sign Up</button>
+                <button class="btn btn-login" onclick="openModal('login')">Log in</button>
+                <button class="btn btn-signup" onclick="openModal('signup')">Sign up</button>
             </div>
         </nav>
 
@@ -517,7 +521,7 @@
             <h1>Find Your Expenses, Master Your Money</h1>
             <p>Smart expense tracking with Gmail integration</p>
             <div class="cta-button">
-                <button class="btn btn-signup" onclick="openModal('signup')">Get Started Free</button>
+                <button class="btn btn-signup" onclick="openModal('signup')">Get started free</button>
             </div>
         </div>
 
