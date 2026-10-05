@@ -738,6 +738,8 @@
         }
 
         function logout() {
+            localStorage.removeItem('authCode');
+            localStorage.removeItem('authTime');
             document.getElementById('landing').classList.remove('hide');
             document.getElementById('dashboard').classList.remove('show');
         }
@@ -757,6 +759,26 @@
             };
             document.getElementById('pageTitle').textContent = titles[page];
         }
+
+        // Check login status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const authCode = localStorage.getItem('authCode');
+            const authTime = localStorage.getItem('authTime');
+            
+            if (authCode && authTime) {
+                console.log('✅ User is logged in. Showing dashboard.');
+                // Hide landing page, show dashboard
+                document.getElementById('landing').classList.add('hide');
+                document.getElementById('dashboard').classList.add('show');
+                // Show dashboard page by default
+                showPage('dashboard');
+            } else {
+                console.log('❌ User is not logged in. Showing landing page.');
+                // Ensure landing page is visible
+                document.getElementById('landing').classList.remove('hide');
+                document.getElementById('dashboard').classList.remove('show');
+            }
+        });
     </script>
 </body>
 </html>
