@@ -503,6 +503,43 @@
                 padding: 20px;
             }
         }
+
+        /* ===== APP PAGES ===== */
+        .user-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+        .user-avatar { width:36px; height:36px; border-radius:50%; object-fit:cover; background:#E5E7EB; flex-shrink:0; }
+        .user-row .user-email { margin-bottom:0; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:32px; }
+        .stat-card { background:white; border:1px solid var(--border); border-radius:12px; padding:20px; }
+        .stat-label { font-size:13px; color:var(--text-light); margin-bottom:6px; }
+        .stat-value { font-size:26px; font-weight:700; }
+        .card { background:white; border:1px solid var(--border); border-radius:12px; padding:24px; margin-top:16px; }
+        .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+        .field label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+        .field input, .field select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; background:white; }
+        .field input:focus, .field select:focus { outline:2px solid #C7D2FE; border-color:#818CF8; }
+        .field.full { grid-column:1/-1; }
+        .btn-primary { padding:11px 22px; background:#4F46E5; color:white; border:none; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer; }
+        .btn-primary:hover { background:#4338CA; }
+        .btn-ghost { padding:6px 10px; background:transparent; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-size:12px; }
+        .btn-ghost:hover { background:#FEE2E2; color:#DC2626; border-color:#FECACA; }
+        .form-actions { margin-top:20px; display:flex; align-items:center; gap:12px; }
+        .form-msg { font-size:13px; color:#059669; }
+        .toolbar { display:flex; flex-wrap:wrap; gap:12px; margin-top:16px; }
+        .toolbar input, .toolbar select { padding:9px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; background:white; }
+        .table-wrap { overflow-x:auto; }
+        table.exp { width:100%; border-collapse:collapse; font-size:14px; }
+        table.exp th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-light); padding:10px 12px; border-bottom:1px solid var(--border); }
+        table.exp td { padding:12px; border-bottom:1px solid #F1F5F9; }
+        table.exp td.amt { font-weight:600; white-space:nowrap; text-align:right; }
+        table.exp th.amt { text-align:right; }
+        .cat-pill { display:inline-block; padding:3px 10px; border-radius:999px; background:#EEF2FF; color:#4F46E5; font-size:12px; font-weight:600; }
+        .empty { color:var(--text-light); padding:20px 0; }
+        .bar-row { display:grid; grid-template-columns:140px 1fr 120px; gap:12px; align-items:center; margin-bottom:12px; font-size:14px; }
+        .bar-track { background:#F1F5F9; border-radius:6px; height:12px; overflow:hidden; }
+        .bar-fill { background:#6366F1; height:100%; border-radius:6px; }
+        .bar-row .v { text-align:right; font-weight:600; }
+        .note { font-size:13px; color:var(--text-light); margin-top:8px; }
+        @media (max-width:768px) { .bar-row { grid-template-columns:90px 1fr 90px; } }
     </style>
 </head>
 <body>
@@ -623,16 +660,21 @@
             </div>
 
             <div class="nav-menu">
-                <button class="active" onclick="showPage('dashboard')">📊 Dashboard</button>
-                <button onclick="showPage('add')">➕ Add Expense</button>
-                <button onclick="showPage('expenses')">📝 Expenses</button>
-                <button onclick="showPage('sync')">🔄 Auto Sync</button>
-                <button onclick="showPage('analytics')">📈 Analytics</button>
+                <button class="active" data-page="dashboard" onclick="showPage('dashboard')">📊 Dashboard</button>
+                <button data-page="add" onclick="showPage('add')">➕ Add Expense</button>
+                <button data-page="expenses" onclick="showPage('expenses')">📝 Expenses</button>
+                <button data-page="sync" onclick="showPage('sync')">🔄 Auto Sync</button>
+                <button data-page="analytics" onclick="showPage('analytics')">📈 Analytics</button>
             </div>
 
             <div class="user-info">
-                <div class="user-name" id="userName">User</div>
-                <div class="user-email" id="userEmail">email@example.com</div>
+                <div class="user-row">
+                    <img class="user-avatar" id="userAvatar" alt="" referrerpolicy="no-referrer">
+                    <div>
+                        <div class="user-name" id="userName"></div>
+                        <div class="user-email" id="userEmail"></div>
+                    </div>
+                </div>
                 <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -644,132 +686,298 @@
             </div>
 
             <div class="page active" id="page-dashboard">
+                <div class="stats">
+                    <div class="stat-card"><div class="stat-label">This month</div><div class="stat-value" id="statMonth">₹0</div></div>
+                    <div class="stat-card"><div class="stat-label">All time</div><div class="stat-value" id="statTotal">₹0</div></div>
+                    <div class="stat-card"><div class="stat-label">Expenses logged</div><div class="stat-value" id="statCount">0</div></div>
+                    <div class="stat-card"><div class="stat-label">Top category (this month)</div><div class="stat-value" id="statTop" style="font-size:20px;">—</div></div>
+                </div>
                 <h2>Recent Expenses</h2>
-                <p style="color: var(--text-light); margin-top: 12px;">No expenses yet. Start adding!</p>
+                <div class="card table-wrap" id="recentList"></div>
             </div>
 
             <div class="page" id="page-add">
-                <h2>Add Expense</h2>
-                <p style="color: var(--text-light); margin-top: 12px;">Track your spending</p>
+                <div class="card">
+                    <div class="form-grid">
+                        <div class="field"><label for="fAmount">Amount</label><input id="fAmount" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                        <div class="field"><label for="fCurrency">Currency</label>
+                            <select id="fCurrency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select></div>
+                        <div class="field"><label for="fCategory">Category</label>
+                            <select id="fCategory"><option>Food & Dining</option><option>Groceries</option><option>Travel</option><option>Transport</option><option>Shopping</option><option>Bills & Utilities</option><option>Entertainment</option><option>Health</option><option>Subscriptions</option><option>Other</option></select></div>
+                        <div class="field"><label for="fDate">Date</label><input id="fDate" type="date"></div>
+                        <div class="field"><label for="fPayment">Paid with</label><input id="fPayment" type="text" placeholder="e.g. HDFC card, UPI, cash"></div>
+                        <div class="field full"><label for="fNote">Description</label><input id="fNote" type="text" placeholder="What was this for?"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-primary" onclick="saveExpense()">Save expense</button>
+                        <span class="form-msg" id="formMsg"></span>
+                    </div>
+                </div>
             </div>
 
             <div class="page" id="page-expenses">
-                <h2>All Expenses</h2>
-                <p style="color: var(--text-light); margin-top: 12px;">View your expense history</p>
+                <div class="toolbar">
+                    <input id="qSearch" type="search" placeholder="Search description…" oninput="renderAll()">
+                    <select id="qCategory" onchange="renderAll()"><option value="">All categories</option></select>
+                    <input id="qMonth" type="month" onchange="renderAll()">
+                    <button class="btn-ghost" onclick="exportCSV()">Export CSV</button>
+                </div>
+                <div class="card table-wrap" id="allList"></div>
             </div>
 
             <div class="page" id="page-sync">
-                <h2>Auto Sync Transactions</h2>
-                <p style="color: var(--text-light); margin-top: 12px;">Connect Gmail to auto-sync</p>
+                <div class="card">
+                    <h3>Gmail auto-sync</h3>
+                    <p class="note">This will read transaction alert emails (card spends, UPI debits) and turn them into expenses automatically. It needs the read-only Gmail permission and an email parser, which is the next build step. Manual entry works in the meantime.</p>
+                </div>
             </div>
 
             <div class="page" id="page-analytics">
-                <h2>Analytics</h2>
-                <p style="color: var(--text-light); margin-top: 12px;">Coming soon</p>
+                <h2>Spending by category</h2>
+                <div class="card" id="catBreakdown"></div>
+                <h2 style="margin-top:32px;">Last 6 months</h2>
+                <div class="card" id="monthBreakdown"></div>
+                <p class="note" id="fxNote"></p>
             </div>
         </div>
     </div>
 
     <script>
         let GOOGLE_CLIENT_ID = '529180440880-bi2adu90l55pooo5epebd6sh673pkdhe.apps.googleusercontent.com';
+        let FX = { INR: 1 };          // units of currency per 1 INR
+        let fxLoaded = false;
+        const BASE = 'INR';
 
-        // Fetch Google Client ID from backend on page load
         async function fetchConfig() {
             try {
-                const response = await fetch('/api/config');
-                const data = await response.json();
-                console.log('📋 Config from backend:', data);
-                if (data.googleClientId && data.googleClientId !== 'YOUR_GOOGLE_CLIENT_ID_HERE') {
-                    GOOGLE_CLIENT_ID = data.googleClientId;
-                    console.log('✅ Updated Client ID from backend');
-                } else {
-                    console.log('⚠️ Backend returned fallback, using hardcoded Client ID');
-                }
-            } catch (err) {
-                console.error('❌ Failed to fetch config:', err);
-                console.log('⚠️ Using hardcoded Client ID as fallback');
-            }
+                const data = await (await fetch('/api/config')).json();
+                if (data.googleClientId) GOOGLE_CLIENT_ID = data.googleClientId;
+            } catch (err) { console.warn('Config fetch failed, using built-in client ID'); }
         }
 
-        function openModal(type) {
-            document.getElementById(type + 'Modal').classList.add('show');
+        async function fetchRates() {
+            try {
+                const d = await (await fetch('https://open.er-api.com/v6/latest/INR')).json();
+                if (d && d.rates) { FX = d.rates; fxLoaded = true; }
+            } catch (e) { console.warn('FX rates unavailable'); }
+            renderAll();
         }
 
-        function closeModal() {
-            document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
-        }
+        // ---------- auth ----------
+        function openModal(type) { document.getElementById(type + 'Modal').classList.add('show'); }
+        function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('show')); }
 
-        function handleGoogleSignup() {
-            if (!GOOGLE_CLIENT_ID) {
-                alert('Configuration not loaded. Please refresh the page.');
-                return;
-            }
-            googleSignup(GOOGLE_CLIENT_ID);
+        function startGoogleAuth() {
+            const state = crypto.getRandomValues(new Uint32Array(4)).join('-');
+            sessionStorage.setItem('oauthState', state);
+            const p = new URLSearchParams({
+                client_id: GOOGLE_CLIENT_ID,
+                redirect_uri: window.location.origin + '/auth/callback',
+                response_type: 'token',
+                scope: 'openid email profile',
+                include_granted_scopes: 'true',
+                prompt: 'select_account',
+                state
+            });
+            window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
         }
+        function handleGoogleSignup() { startGoogleAuth(); }
+        function handleGoogleLogin() { startGoogleAuth(); }
 
-        function googleSignup(clientId) {
-            const redirectUri = window.location.origin + '/auth/callback';
-            const state = Math.random().toString(36).substring(7);
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email profile&access_type=offline&state=${state}`;
-            window.location.href = authUrl;
-        }
-
-        function handleGoogleLogin() {
-            if (!GOOGLE_CLIENT_ID) {
-                alert('Configuration not loaded. Please refresh the page.');
-                return;
-            }
-            googleLogin(GOOGLE_CLIENT_ID);
-        }
-
-        function googleLogin(clientId) {
-            const redirectUri = window.location.origin + '/auth/callback';
-            const state = Math.random().toString(36).substring(7);
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email profile&access_type=offline&state=${state}`;
-            window.location.href = authUrl;
+        function getAuth() {
+            try { return JSON.parse(localStorage.getItem('fmeAuth')); } catch { return null; }
         }
 
         function logout() {
+            const a = getAuth();
+            if (a && a.accessToken) {
+                fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(a.accessToken),
+                      { method: 'POST', mode: 'no-cors' }).catch(() => {});
+            }
+            localStorage.removeItem('fmeAuth');
             localStorage.removeItem('authCode');
             localStorage.removeItem('authTime');
             document.getElementById('landing').classList.remove('hide');
             document.getElementById('dashboard').classList.remove('show');
         }
 
+        function showUser(u) {
+            document.getElementById('userName').textContent = u.name || '';
+            document.getElementById('userEmail').textContent = u.email || '';
+            const av = document.getElementById('userAvatar');
+            if (u.picture) { av.src = u.picture; av.style.display = ''; } else { av.style.display = 'none'; }
+            const first = (u.name || '').split(' ')[0];
+            document.getElementById('pageSubtitle').textContent = first ? 'Welcome back, ' + first : 'Welcome back';
+        }
+
+        // ---------- storage (per Google account) ----------
+        function storeKey() { const a = getAuth(); return 'fmeExpenses:' + (a ? a.user.email : 'anon'); }
+        function loadExpenses() { try { return JSON.parse(localStorage.getItem(storeKey())) || []; } catch { return []; } }
+        function saveExpenses(list) { localStorage.setItem(storeKey(), JSON.stringify(list)); }
+
+        // ---------- money helpers ----------
+        function toBase(amount, cur) {
+            if (cur === BASE) return amount;
+            const r = FX[cur];
+            return r ? amount / r : null;
+        }
+        function fmt(amount, cur) {
+            try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: cur, maximumFractionDigits: 2 }).format(amount); }
+            catch { return cur + ' ' + amount.toFixed(2); }
+        }
+        function sumBase(list) {
+            let t = 0, missing = 0;
+            list.forEach(e => { const v = toBase(e.amount, e.currency); if (v === null) missing++; else t += v; });
+            return { total: t, missing };
+        }
+        function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+        function monthKey(d) { return d.slice(0, 7); }
+
+        // ---------- actions ----------
+        function saveExpense() {
+            const amount = parseFloat(document.getElementById('fAmount').value);
+            const date = document.getElementById('fDate').value;
+            const msg = document.getElementById('formMsg');
+            if (!amount || amount <= 0) { msg.style.color = '#DC2626'; msg.textContent = 'Enter an amount greater than 0.'; return; }
+            if (!date) { msg.style.color = '#DC2626'; msg.textContent = 'Pick a date.'; return; }
+            const list = loadExpenses();
+            list.push({
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                amount,
+                currency: document.getElementById('fCurrency').value,
+                category: document.getElementById('fCategory').value,
+                date,
+                payment: document.getElementById('fPayment').value.trim(),
+                note: document.getElementById('fNote').value.trim(),
+                source: 'manual'
+            });
+            saveExpenses(list);
+            document.getElementById('fAmount').value = '';
+            document.getElementById('fNote').value = '';
+            msg.style.color = '#059669';
+            msg.textContent = 'Saved ✓';
+            setTimeout(() => msg.textContent = '', 2500);
+            renderAll();
+        }
+
+        function deleteExpense(id) {
+            if (!confirm('Delete this expense?')) return;
+            saveExpenses(loadExpenses().filter(e => e.id !== id));
+            renderAll();
+        }
+
+        function exportCSV() {
+            const rows = [['Date', 'Description', 'Category', 'Paid with', 'Amount', 'Currency']];
+            filtered().forEach(e => rows.push([e.date, e.note, e.category, e.payment, e.amount, e.currency]));
+            const csv = rows.map(r => r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = 'expenses.csv';
+            a.click();
+        }
+
+        // ---------- rendering ----------
+        function sorted() { return loadExpenses().sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)); }
+
+        function filtered() {
+            const q = document.getElementById('qSearch').value.toLowerCase();
+            const c = document.getElementById('qCategory').value;
+            const m = document.getElementById('qMonth').value;
+            return sorted().filter(e =>
+                (!q || (e.note || '').toLowerCase().includes(q) || (e.payment || '').toLowerCase().includes(q)) &&
+                (!c || e.category === c) &&
+                (!m || monthKey(e.date) === m));
+        }
+
+        function tableHTML(list, withDelete) {
+            if (!list.length) return '<div class="empty">No expenses yet. Add one from “Add Expense”.</div>';
+            return '<table class="exp"><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid with</th><th class="amt">Amount</th>' +
+                (withDelete ? '<th></th>' : '') + '</tr></thead><tbody>' +
+                list.map(e => {
+                    const inBase = e.currency !== BASE && toBase(e.amount, e.currency) !== null
+                        ? '<div class="note" style="margin:2px 0 0;">≈ ' + fmt(toBase(e.amount, e.currency), BASE) + '</div>' : '';
+                    return '<tr><td>' + esc(e.date) + '</td><td>' + (esc(e.note) || '<span class="note">—</span>') +
+                        '</td><td><span class="cat-pill">' + esc(e.category) + '</span></td><td>' + (esc(e.payment) || '—') +
+                        '</td><td class="amt">' + fmt(e.amount, e.currency) + inBase + '</td>' +
+                        (withDelete ? '<td><button class="btn-ghost" onclick="deleteExpense(\'' + e.id + '\')">Delete</button></td>' : '') + '</tr>';
+                }).join('') + '</tbody></table>';
+        }
+
+        function bars(entries) {
+            if (!entries.length) return '<div class="empty">Nothing to show yet.</div>';
+            const max = Math.max(...entries.map(x => x[1]), 1);
+            return entries.map(([k, v]) =>
+                '<div class="bar-row"><div>' + esc(k) + '</div><div class="bar-track"><div class="bar-fill" style="width:' +
+                (v / max * 100).toFixed(1) + '%"></div></div><div class="v">' + fmt(v, BASE) + '</div></div>').join('');
+        }
+
+        function renderAll() {
+            const all = sorted();
+            const thisMonth = new Date().toISOString().slice(0, 7);
+            const monthList = all.filter(e => monthKey(e.date) === thisMonth);
+
+            document.getElementById('statMonth').textContent = fmt(sumBase(monthList).total, BASE);
+            document.getElementById('statTotal').textContent = fmt(sumBase(all).total, BASE);
+            document.getElementById('statCount').textContent = all.length;
+            const byCatMonth = {};
+            monthList.forEach(e => { const v = toBase(e.amount, e.currency); if (v !== null) byCatMonth[e.category] = (byCatMonth[e.category] || 0) + v; });
+            const top = Object.entries(byCatMonth).sort((a, b) => b[1] - a[1])[0];
+            document.getElementById('statTop').textContent = top ? top[0] : '—';
+
+            document.getElementById('recentList').innerHTML = tableHTML(all.slice(0, 8), false);
+
+            const sel = document.getElementById('qCategory');
+            const current = sel.value;
+            const cats = [...new Set(all.map(e => e.category))].sort();
+            sel.innerHTML = '<option value="">All categories</option>' + cats.map(c => '<option' + (c === current ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
+            document.getElementById('allList').innerHTML = tableHTML(filtered(), true);
+
+            const byCat = {};
+            all.forEach(e => { const v = toBase(e.amount, e.currency); if (v !== null) byCat[e.category] = (byCat[e.category] || 0) + v; });
+            document.getElementById('catBreakdown').innerHTML = bars(Object.entries(byCat).sort((a, b) => b[1] - a[1]));
+
+            const months = [];
+            const d = new Date(); d.setDate(1);
+            for (let i = 5; i >= 0; i--) {
+                const x = new Date(d.getFullYear(), d.getMonth() - i, 1);
+                const k = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0');
+                const label = x.toLocaleString('en-IN', { month: 'short', year: 'numeric' });
+                months.push([label, sumBase(all.filter(e => monthKey(e.date) === k)).total]);
+            }
+            document.getElementById('monthBreakdown').innerHTML = all.length ? bars(months) : bars([]);
+
+            const missing = sumBase(all).missing;
+            document.getElementById('fxNote').textContent =
+                'Totals are shown in INR' + (fxLoaded ? ' using live exchange rates.' : '. Live exchange rates could not be loaded, so foreign-currency expenses are left out of totals.') +
+                (missing && fxLoaded ? ' ' + missing + ' expense(s) in unsupported currencies are excluded.' : '');
+        }
+
         function showPage(page) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById('page-' + page).classList.add('active');
-            document.querySelectorAll('.nav-menu button').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const titles = {
-                dashboard: 'Dashboard',
-                add: 'Add Expense',
-                expenses: 'All Expenses',
-                sync: 'Auto Sync',
-                analytics: 'Analytics'
-            };
+            document.querySelectorAll('.nav-menu button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+            const titles = { dashboard: 'Dashboard', add: 'Add Expense', expenses: 'All Expenses', sync: 'Auto Sync', analytics: 'Analytics' };
             document.getElementById('pageTitle').textContent = titles[page];
+            if (page === 'add' && !document.getElementById('fDate').value) {
+                document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+            }
         }
 
-        // Check login status on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Fetch config from backend
+        document.addEventListener('DOMContentLoaded', function () {
             fetchConfig();
-            
-            const authCode = localStorage.getItem('authCode');
-            const authTime = localStorage.getItem('authTime');
-            
-            if (authCode && authTime) {
-                console.log('✅ User is logged in. Showing dashboard.');
-                // Hide landing page, show dashboard
+            // clear leftovers from the old code-based login
+            localStorage.removeItem('authCode');
+            localStorage.removeItem('authTime');
+
+            const auth = getAuth();
+            if (auth && auth.user) {
                 document.getElementById('landing').classList.add('hide');
                 document.getElementById('dashboard').classList.add('show');
-                // Show dashboard page by default
+                showUser(auth.user);
                 showPage('dashboard');
+                renderAll();
+                fetchRates();
             } else {
-                console.log('❌ User is not logged in. Showing landing page.');
-                // Ensure landing page is visible
                 document.getElementById('landing').classList.remove('hide');
                 document.getElementById('dashboard').classList.remove('show');
             }

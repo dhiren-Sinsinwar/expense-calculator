@@ -35,63 +35,58 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Google OAuth Callback
-app.get('/auth/callback', async (req, res) => {
-  const { code, error } = req.query;
+// Google OAuth Callback (token flow: token arrives in the URL #fragment,
+// which only the browser can read, so this page handles it client-side)
+app.get('/auth/callback', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Signing in…</title></head>
+<body style="font-family: Arial, sans-serif; text-align: center; padding: 60px;">
+  <h2 id="msg">Signing you in…</h2>
+  <script>
+    (async function () {
+      const msg = document.getElementById('msg');
+      const params = new URLSearchParams(window.location.hash.substring(1));
+      const query = new URLSearchParams(window.location.search);
+      const error = params.get('error') || query.get('error');
+      const token = params.get('access_token');
+      const state = params.get('state');
+      const expected = sessionStorage.getItem('oauthState');
 
-  if (error) {
-    return res.send(`
-      <html>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1>❌ Error</h1>
-          <p>${error}</p>
-          <a href="/">← Back to Home</a>
-        </body>
-      </html>
-    `);
-  }
+      if (error || !token) {
+        msg.textContent = 'Login failed: ' + (error || 'no token received');
+        setTimeout(() => window.location.href = '/', 3000);
+        return;
+      }
+      if (!expected || state !== expected) {
+        msg.textContent = 'Login failed: security check (state) did not match. Please try again.';
+        setTimeout(() => window.location.href = '/', 3000);
+        return;
+      }
+      sessionStorage.removeItem('oauthState');
 
-  if (!code) {
-    return res.send(`
-      <html>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1>❌ No code received</h1>
-          <a href="/">← Back to Home</a>
-        </body>
-      </html>
-    `);
-  }
-
-  try {
-    // For now, just acknowledge successful auth
-    // In production, exchange code for tokens here
-    return res.send(`
-      <html>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1>✅ Login Successful!</h1>
-          <p>Redirecting...</p>
-          <script>
-            // Store auth info
-            localStorage.setItem('authCode', '${code}');
-            localStorage.setItem('authTime', new Date().getTime());
-            // Redirect to dashboard
-            setTimeout(() => window.location.href = '/', 2000);
-          </script>
-        </body>
-      </html>
-    `);
-  } catch (err) {
-    console.error('OAuth error:', err);
-    res.status(500).send(`
-      <html>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1>❌ Server Error</h1>
-          <p>${err.message}</p>
-          <a href="/">← Back to Home</a>
-        </body>
-      </html>
-    `);
-  }
+      try {
+        const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        if (!r.ok) throw new Error('userinfo ' + r.status);
+        const u = await r.json();
+        const expiresIn = parseInt(params.get('expires_in') || '3600', 10);
+        localStorage.setItem('fmeAuth', JSON.stringify({
+          accessToken: token,
+          expiresAt: Date.now() + expiresIn * 1000,
+          user: { name: u.name || u.email, email: u.email, picture: u.picture || '' }
+        }));
+        localStorage.removeItem('authCode');
+        localStorage.removeItem('authTime');
+        window.location.replace('/');
+      } catch (e) {
+        msg.textContent = 'Could not load your Google profile: ' + e.message;
+        setTimeout(() => window.location.href = '/', 3000);
+      }
+    })();
+  </script>
+</body></html>`);
 });
 
 // Catch-all for SPA routing
