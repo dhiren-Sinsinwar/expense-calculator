@@ -1,7 +1,7 @@
 {
   "name": "expense-calculator",
   "version": "1.0.0",
-  "description": "Expense Calculator with Gmail Integration",
+  "description": "Find My Expense — expense tracker with phone OTP login",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

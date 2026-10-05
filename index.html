@@ -540,6 +540,31 @@
         .bar-row .v { text-align:right; font-weight:600; }
         .note { font-size:13px; color:var(--text-light); margin-top:8px; }
         @media (max-width:768px) { .bar-row { grid-template-columns:90px 1fr 90px; } }
+
+        .feature-icon { height:80px; width:80px; display:flex; align-items:center; justify-content:center; font-size:52px; }
+        div.user-avatar { display:flex; align-items:center; justify-content:center; background:#6366F1; color:white; font-weight:700; font-size:15px; }
+        .auth-field { margin-bottom:14px; text-align:left; }
+        .auth-field label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#1a1a1a; }
+        .auth-field .opt { font-weight:400; color:#6b7280; }
+        .auth-field input { width:100%; padding:11px 12px; border:1px solid #D1D5DB; border-radius:8px; font-size:15px; font-family:inherit; }
+        .auth-field input:focus { outline:2px solid #C7D2FE; border-color:#818CF8; }
+        .auth-field input:disabled { background:#F3F4F6; color:#374151; }
+        .otp-row { display:flex; gap:8px; align-items:stretch; }
+        .otp-row input { flex:1; min-width:0; }
+        .otp-row .cc { display:flex; align-items:center; padding:0 10px; border:1px solid #D1D5DB; border-radius:8px; background:#F9FAFB; font-size:15px; color:#374151; }
+        .auth-btn-sm { padding:0 14px; border:1px solid #6366F1; background:white; color:#4F46E5; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; }
+        .auth-btn-sm:disabled { opacity:.55; cursor:not-allowed; }
+        .auth-btn-sm.ok { border-color:#10B981; color:#059669; background:#ECFDF5; }
+        .auth-btn { width:100%; padding:13px; margin-top:6px; background:#4F46E5; color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; }
+        .auth-btn:disabled { background:#A5B4FC; cursor:not-allowed; }
+        .auth-msg { font-size:13px; min-height:18px; margin:4px 0 6px; color:#DC2626; text-align:left; }
+        .auth-msg.ok { color:#059669; }
+        .auth-msg.info { color:#4F46E5; background:#EEF2FF; padding:8px 10px; border-radius:6px; }
+        .auth-switch { margin-top:14px; font-size:13px; color:#6b7280; text-align:center; }
+        .auth-switch a { color:#4F46E5; font-weight:600; text-decoration:none; }
+        .auth-tabs { display:flex; background:#F1F5F9; border-radius:8px; padding:4px; margin-bottom:16px; }
+        .auth-tabs button { flex:1; padding:9px; border:none; background:transparent; border-radius:6px; font-weight:600; font-size:14px; color:#64748B; cursor:pointer; }
+        .auth-tabs button.active { background:white; color:#1E293B; box-shadow:0 1px 3px rgba(0,0,0,.1); }
     </style>
 </head>
 <body>
@@ -558,7 +583,7 @@
         <div class="hero">
             <img class="hero-image" src="https://ik.imagekit.io/credproject/image.png" alt="Expenses">
             <h1>Find Your Expenses, Master Your Money</h1>
-            <p>Smart expense tracking with Gmail integration</p>
+            <p>Track every rupee, in any currency, in seconds</p>
             <div class="cta-button">
                 <button class="btn btn-signup" onclick="openModal('signup')">Get started free</button>
             </div>
@@ -567,9 +592,9 @@
         <div class="features-section">
             <div class="features-container">
                 <div class="feature">
-                    <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Auto Sync">
-                    <div class="feature-name">Auto Sync</div>
-                    <p class="feature-desc">Connect Gmail and automatically sync your transactions</p>
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-name">Quick Entry</div>
+                    <p class="feature-desc">Log an expense in seconds with smart categories</p>
                 </div>
                 <div class="feature">
                     <img src="https://ik.imagekit.io/credproject/Multi%20currency%20Logo" alt="Multi-Currency">
@@ -589,65 +614,75 @@
     <div class="modal" id="signupModal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">✕</button>
-            <div class="modal-title">Get Started Free</div>
-            <div class="modal-subtitle">3 simple steps to track your expenses</div>
-            
-            <div style="margin: 24px 0; background: #f5f5f5; padding: 16px; border-radius: 8px; border-left: 3px solid #6366F1;">
-                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #6366F1; color: white; border-radius: 50%; font-weight: bold; flex-shrink: 0;">1</div>
-                    <div>
-                        <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">Sign up with Google</div>
-                        <div style="font-size: 13px; color: #666666; line-height: 1.5;">Click the button below to create your account using your Google account</div>
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #6366F1; color: white; border-radius: 50%; font-weight: bold; flex-shrink: 0;">2</div>
-                    <div>
-                        <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">Add your expenses</div>
-                        <div style="font-size: 13px; color: #666666; line-height: 1.5;">Manually enter expenses or connect Gmail to auto-sync your bank alerts</div>
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 12px;">
-                    <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #6366F1; color: white; border-radius: 50%; font-weight: bold; flex-shrink: 0;">3</div>
-                    <div>
-                        <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">Track & analyze</div>
-                        <div style="font-size: 13px; color: #666666; line-height: 1.5;">View your spending summary, trends, and export reports anytime</div>
-                    </div>
+            <div class="modal-title">Create your account</div>
+            <div class="modal-subtitle">Free forever · No credit card</div>
+
+            <div class="auth-field"><label for="suName">Full name</label><input id="suName" type="text" autocomplete="name" placeholder="Your name"></div>
+            <div class="auth-field"><label for="suEmail">Email</label><input id="suEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+
+            <div class="auth-field">
+                <label for="suPhone">Mobile number</label>
+                <div class="otp-row">
+                    <span class="cc">+91</span>
+                    <input id="suPhone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit mobile" oninput="onPhoneEdit('su')">
+                    <button class="auth-btn-sm" id="suSendBtn" onclick="sendOtp('su')">Send OTP</button>
                 </div>
             </div>
-            
-            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="handleGoogleSignup()">
-                <span style="margin-right: 8px;">🔵</span> Sign up with Google
-            </button>
-            
-            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
-                <div style="font-size: 12px; color: rgba(255,255,255,0.6);">No credit card required • Free forever • 100% secure</div>
+            <div class="auth-field" id="suOtpBox" style="display:none;">
+                <label for="suOtp">Enter OTP</label>
+                <div class="otp-row">
+                    <input id="suOtp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" onkeydown="if(event.key==='Enter')verifyOtp('su')">
+                    <button class="auth-btn-sm" id="suVerifyBtn" onclick="verifyOtp('su')">Verify</button>
+                </div>
             </div>
+            <div class="auth-msg" id="suPhoneMsg"></div>
+
+            <div class="auth-field"><label for="suPass">Password <span class="opt">(optional, min 8 characters)</span></label><input id="suPass" type="password" autocomplete="new-password" placeholder="Set a password to log in without OTP"></div>
+            <div class="auth-field" id="suPass2Box" style="display:none;"><label for="suPass2">Confirm password</label><input id="suPass2" type="password" autocomplete="new-password"></div>
+
+            <button class="auth-btn" id="suCreateBtn" onclick="createAccount()" disabled>Create account</button>
+            <div class="auth-msg" id="suMsg"></div>
+            <div class="auth-switch">Already have an account? <a href="#" onclick="switchModal('login');return false;">Log in</a></div>
         </div>
     </div>
 
     <div class="modal" id="loginModal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">✕</button>
-            <div class="modal-title">Welcome Back</div>
-            <div class="modal-subtitle">Login to your account</div>
-            
-            <div style="margin: 20px 0; padding: 12px; background: #e8eaf6; border-radius: 8px; border-left: 3px solid #6366F1;">
-                <div style="font-size: 13px; color: #1a1a1a; line-height: 1.6;">
-                    <div style="margin-bottom: 8px;"><strong>Once logged in, you can:</strong></div>
-                    <div>✓ View your expense dashboard</div>
-                    <div>✓ Add manual transactions</div>
-                    <div>✓ Sync Gmail transactions</div>
-                    <div>✓ Track spending by category</div>
-                    <div>✓ Export reports (CSV/PDF)</div>
-                </div>
+            <div class="modal-title">Welcome back</div>
+            <div class="modal-subtitle">Log in to your account</div>
+
+            <div class="auth-tabs">
+                <button class="active" id="tabOtp" onclick="loginTab('otp')">OTP</button>
+                <button id="tabPass" onclick="loginTab('pass')">Password</button>
             </div>
-            
-            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="handleGoogleLogin()">
-                <span style="margin-right: 8px;">🔵</span> Login with Google
-            </button>
+
+            <div id="loginOtpPane">
+                <div class="auth-field">
+                    <label for="liPhone">Mobile number</label>
+                    <div class="otp-row">
+                        <span class="cc">+91</span>
+                        <input id="liPhone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit mobile" oninput="onPhoneEdit('li')">
+                        <button class="auth-btn-sm" id="liSendBtn" onclick="sendOtp('li')">Send OTP</button>
+                    </div>
+                </div>
+                <div class="auth-field" id="liOtpBox" style="display:none;">
+                    <label for="liOtp">Enter OTP</label>
+                    <input id="liOtp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" onkeydown="if(event.key==='Enter')verifyOtp('li')">
+                </div>
+                <div class="auth-msg" id="liPhoneMsg"></div>
+                <button class="auth-btn" id="liVerifyBtn" onclick="verifyOtp('li')" style="display:none;">Verify &amp; log in</button>
+            </div>
+
+            <div id="loginPassPane" style="display:none;">
+                <div class="auth-field"><label for="lpId">Mobile number or email</label><input id="lpId" type="text" autocomplete="username" placeholder="98xxxxxxxx or you@example.com"></div>
+                <div class="auth-field"><label for="lpPass">Password</label><input id="lpPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')passwordLogin()"></div>
+                <button class="auth-btn" onclick="passwordLogin()">Log in</button>
+                <div class="auth-msg" id="lpMsg"></div>
+                <div class="auth-switch" style="margin-top:8px;">Forgot password? <a href="#" onclick="loginTab('otp');return false;">Log in with OTP</a></div>
+            </div>
+
+            <div class="auth-switch">New here? <a href="#" onclick="switchModal('signup');return false;">Create an account</a></div>
         </div>
     </div>
 
@@ -663,18 +698,18 @@
                 <button class="active" data-page="dashboard" onclick="showPage('dashboard')">📊 Dashboard</button>
                 <button data-page="add" onclick="showPage('add')">➕ Add Expense</button>
                 <button data-page="expenses" onclick="showPage('expenses')">📝 Expenses</button>
-                <button data-page="sync" onclick="showPage('sync')">🔄 Auto Sync</button>
                 <button data-page="analytics" onclick="showPage('analytics')">📈 Analytics</button>
             </div>
 
             <div class="user-info">
                 <div class="user-row">
-                    <img class="user-avatar" id="userAvatar" alt="" referrerpolicy="no-referrer">
+                    <div class="user-avatar" id="userAvatar"></div>
                     <div>
                         <div class="user-name" id="userName"></div>
                         <div class="user-email" id="userEmail"></div>
                     </div>
                 </div>
+                <button class="logout-btn" style="background:#F1F5F9;color:#334155;border-color:#E2E8F0;margin-bottom:8px;" onclick="openPasswordPanel()" id="pwBtn">Set password</button>
                 <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -703,7 +738,7 @@
                         <div class="field"><label for="fCurrency">Currency</label>
                             <select id="fCurrency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select></div>
                         <div class="field"><label for="fCategory">Category</label>
-                            <select id="fCategory"></select></div>
+                            <select id="fCategory"><option>Food & Dining</option><option>Groceries</option><option>Travel</option><option>Transport</option><option>Shopping</option><option>Bills & Utilities</option><option>Entertainment</option><option>Health</option><option>Subscriptions</option><option>Other</option></select></div>
                         <div class="field"><label for="fDate">Date</label><input id="fDate" type="date"></div>
                         <div class="field"><label for="fPayment">Paid with</label><input id="fPayment" type="text" placeholder="e.g. HDFC card, UPI, cash"></div>
                         <div class="field full"><label for="fNote">Description</label><input id="fNote" type="text" placeholder="What was this for?"></div>
@@ -725,39 +760,17 @@
                 <div class="card table-wrap" id="allList"></div>
             </div>
 
-            <div class="page" id="page-sync">
-                <div class="card">
-                    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
-                        <div>
-                            <h3 style="margin-bottom:4px;">Gmail auto-sync</h3>
-                            <div class="note" id="syncStatus" style="margin:0;"></div>
-                        </div>
-                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                            <select id="syncDays" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;">
-                                <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option>
-                                <option value="90">Last 90 days</option><option value="180">Last 6 months</option></select>
-                            <button class="btn-primary" id="syncBtn" onclick="syncButton()">Connect Gmail</button>
-                        </div>
+            <div class="page" id="page-account">
+                <div class="card" style="max-width:520px;">
+                    <h3 id="pwTitle">Set a password</h3>
+                    <p class="note">Lets you log in with your mobile number or email and password, without waiting for an OTP.</p>
+                    <div class="form-grid" style="grid-template-columns:1fr;margin-top:12px;">
+                        <div class="field" id="pwCurBox"><label for="pwCur">Current password</label><input id="pwCur" type="password" autocomplete="current-password"></div>
+                        <div class="field"><label for="pwNew">New password</label><input id="pwNew" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+                        <div class="field"><label for="pwNew2">Confirm new password</label><input id="pwNew2" type="password" autocomplete="new-password"></div>
                     </div>
-                    <div class="note" id="syncProgress"></div>
-                    <p class="note">Read-only access. Only transaction alerts are searched, and only the extracted amount, merchant, date and card are saved, never the email itself.</p>
+                    <div class="form-actions"><button class="btn-primary" onclick="savePassword()">Save password</button><span class="form-msg" id="pwMsg"></span></div>
                 </div>
-
-                <div id="reviewBox" style="display:none;">
-                    <h2 style="margin-top:32px;">Review found transactions</h2>
-                    <p class="note">Check categories, then add the ones you want. Refunds are shown in green and reduce your totals.</p>
-                    <div class="toolbar">
-                        <button class="btn-primary" onclick="approveSelected()">Add selected</button>
-                        <button class="btn-ghost" onclick="discardSelected()">Discard selected</button>
-                    </div>
-                    <div class="card table-wrap" id="reviewList"></div>
-                </div>
-
-                <details class="card" id="unreadBox" style="display:none;">
-                    <summary style="cursor:pointer;font-weight:600;" id="unreadSummary"></summary>
-                    <p class="note">These looked like transaction emails but the format wasn't recognized. Share one (amounts can be blurred) and the parser can be taught that format.</p>
-                    <div class="table-wrap" id="unreadList"></div>
-                </details>
             </div>
 
             <div class="page" id="page-analytics">
@@ -770,19 +783,10 @@
         </div>
     </div>
 
-    <script src="/gmail-parser.js"></script>
     <script>
-        let GOOGLE_CLIENT_ID = '529180440880-bi2adu90l55pooo5epebd6sh673pkdhe.apps.googleusercontent.com';
         let FX = { INR: 1 };          // units of currency per 1 INR
         let fxLoaded = false;
         const BASE = 'INR';
-
-        async function fetchConfig() {
-            try {
-                const data = await (await fetch('/api/config')).json();
-                if (data.googleClientId) GOOGLE_CLIENT_ID = data.googleClientId;
-            } catch (err) { console.warn('Config fetch failed, using built-in client ID'); }
-        }
 
         async function fetchRates() {
             try {
@@ -792,55 +796,189 @@
             renderAll();
         }
 
-        // ---------- auth ----------
-        function openModal(type) { document.getElementById(type + 'Modal').classList.add('show'); }
+        // ---------- modals ----------
+        function openModal(type) {
+            closeModal();
+            if (type === 'login') { loginTab('otp'); ['liOtp', 'lpPass'].forEach(id => document.getElementById(id).value = ''); setMsg('lpMsg', ''); }
+            document.getElementById(type + 'Modal').classList.add('show');
+        }
         function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('show')); }
+        function switchModal(type) { openModal(type); }
 
-        function startGoogleAuth(extraScope) {
-            const state = crypto.getRandomValues(new Uint32Array(4)).join('-');
-            sessionStorage.setItem('oauthState', state);
-            const p = new URLSearchParams({
-                client_id: GOOGLE_CLIENT_ID,
-                redirect_uri: window.location.origin + '/auth/callback',
-                response_type: 'token',
-                scope: 'openid email profile' + (extraScope ? ' ' + extraScope : ''),
-                include_granted_scopes: 'true',
-                prompt: extraScope ? 'consent' : 'select_account',
-                state
+        // ---------- API ----------
+        async function api(path, body, method) {
+            const s = getAuth();
+            const r = await fetch(path, {
+                method: method || (body ? 'POST' : 'GET'),
+                headers: { 'Content-Type': 'application/json', ...(s && s.token ? { Authorization: 'Bearer ' + s.token } : {}) },
+                body: body ? JSON.stringify(body) : undefined
             });
-            window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) { const e = new Error(d.error || 'Something went wrong'); e.data = d; e.status = r.status; throw e; }
+            return d;
         }
-        function handleGoogleSignup() { startGoogleAuth(); }
-        function handleGoogleLogin() { startGoogleAuth(); }
+        function setMsg(id, text, kind) { const el = document.getElementById(id); el.textContent = text || ''; el.className = 'auth-msg' + (kind ? ' ' + kind : ''); }
+        function digits(id) { return document.getElementById(id).value.replace(/\D/g, ''); }
 
-        function getAuth() {
-            try { return JSON.parse(localStorage.getItem('fmeAuth')); } catch { return null; }
+        // ---------- OTP (shared by signup 'su' and login 'li') ----------
+        const otpState = { su: { verified: false, token: null, timer: null }, li: { timer: null } };
+
+        function onPhoneEdit(k) {
+            const el = document.getElementById(k + 'Phone');
+            el.value = el.value.replace(/\D/g, '').slice(0, 10);
         }
 
-        function logout() {
-            const a = getAuth();
-            if (a && a.accessToken) {
-                fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(a.accessToken),
-                      { method: 'POST', mode: 'no-cors' }).catch(() => {});
+        function startCooldown(k, secs) {
+            const btn = document.getElementById(k + 'SendBtn');
+            clearInterval(otpState[k].timer);
+            let left = secs; btn.disabled = true; btn.textContent = 'Resend in ' + left + 's';
+            otpState[k].timer = setInterval(() => {
+                left--;
+                if (left <= 0) { clearInterval(otpState[k].timer); btn.disabled = false; btn.textContent = 'Resend OTP'; }
+                else btn.textContent = 'Resend in ' + left + 's';
+            }, 1000);
+        }
+
+        async function sendOtp(k) {
+            const phone = digits(k + 'Phone');
+            const msgId = k + 'PhoneMsg';
+            if (!/^[6-9]\d{9}$/.test(phone)) return setMsg(msgId, 'Enter a valid 10-digit mobile number.');
+            const btn = document.getElementById(k + 'SendBtn');
+            btn.disabled = true; btn.textContent = 'Sending…';
+            try {
+                const d = await api('/api/otp/send', { phone, purpose: k === 'su' ? 'signup' : 'login' });
+                document.getElementById(k + 'OtpBox').style.display = '';
+                if (k === 'li') document.getElementById('liVerifyBtn').style.display = '';
+                const otpEl = document.getElementById(k + 'Otp'); otpEl.value = ''; otpEl.focus();
+                setMsg(msgId, d.testMode ? 'Test mode (no SMS sent). Your code is ' + d.devCode : 'OTP sent to +91 ' + phone.slice(0, 5) + ' ' + phone.slice(5), d.testMode ? 'info' : 'ok');
+                startCooldown(k, d.resendIn || 30);
+            } catch (e) {
+                btn.disabled = false; btn.textContent = 'Send OTP';
+                if (e.data && e.data.retryIn) startCooldown(k, e.data.retryIn);
+                setMsg(msgId, e.message);
+                if (e.data && e.data.code === 'EXISTS') setMsg(msgId, e.message);
             }
-            localStorage.removeItem('fmeAuth');
-            localStorage.removeItem('authCode');
-            localStorage.removeItem('authTime');
+        }
+
+        async function verifyOtp(k) {
+            const phone = digits(k + 'Phone'), otp = digits(k + 'Otp');
+            const msgId = k + 'PhoneMsg';
+            if (otp.length < 4) return setMsg(msgId, 'Enter the OTP you received.');
+            const btn = document.getElementById(k + 'VerifyBtn'); btn.disabled = true;
+            try {
+                const d = await api('/api/otp/verify', { phone, otp });
+                if (k === 'su') {
+                    otpState.su.verified = true; otpState.su.token = d.signupToken;
+                    document.getElementById('suPhone').disabled = true;
+                    document.getElementById('suOtpBox').style.display = 'none';
+                    clearInterval(otpState.su.timer);
+                    const sb = document.getElementById('suSendBtn'); sb.textContent = '✓ Verified'; sb.classList.add('ok'); sb.disabled = true;
+                    setMsg(msgId, 'Mobile number verified.', 'ok');
+                    updateCreateBtn();
+                } else {
+                    startSession(d);
+                }
+            } catch (e) {
+                setMsg(msgId, e.message + (e.data && e.data.attemptsLeft != null ? ' ' + e.data.attemptsLeft + ' attempt(s) left.' : ''));
+            } finally { btn.disabled = false; }
+        }
+
+        // ---------- signup ----------
+        function updateCreateBtn() {
+            const name = document.getElementById('suName').value.trim();
+            const email = document.getElementById('suEmail').value.trim();
+            document.getElementById('suCreateBtn').disabled = !(otpState.su.verified && name.length >= 2 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email));
+            document.getElementById('suPass2Box').style.display = document.getElementById('suPass').value ? '' : 'none';
+        }
+        async function createAccount() {
+            const pass = document.getElementById('suPass').value, pass2 = document.getElementById('suPass2').value;
+            if (pass && pass.length < 8) return setMsg('suMsg', 'Password must be at least 8 characters.');
+            if (pass && pass !== pass2) return setMsg('suMsg', 'Passwords don’t match.');
+            const btn = document.getElementById('suCreateBtn'); btn.disabled = true; btn.textContent = 'Creating account…';
+            try {
+                const d = await api('/api/signup', {
+                    name: document.getElementById('suName').value.trim(),
+                    email: document.getElementById('suEmail').value.trim(),
+                    password: pass, signupToken: otpState.su.token
+                });
+                startSession(d);
+            } catch (e) {
+                setMsg('suMsg', e.message);
+                btn.disabled = false;
+            } finally { btn.textContent = 'Create account'; }
+        }
+
+        // ---------- password login ----------
+        function loginTab(t) {
+            document.getElementById('tabOtp').classList.toggle('active', t === 'otp');
+            document.getElementById('tabPass').classList.toggle('active', t === 'pass');
+            document.getElementById('loginOtpPane').style.display = t === 'otp' ? '' : 'none';
+            document.getElementById('loginPassPane').style.display = t === 'pass' ? '' : 'none';
+        }
+        async function passwordLogin() {
+            const identifier = document.getElementById('lpId').value.trim(), password = document.getElementById('lpPass').value;
+            if (!identifier || !password) return setMsg('lpMsg', 'Enter your mobile/email and password.');
+            try { startSession(await api('/api/login/password', { identifier, password })); }
+            catch (e) { setMsg('lpMsg', e.message); }
+        }
+
+        // ---------- session ----------
+        function getAuth() { try { return JSON.parse(localStorage.getItem('fmeSession')); } catch { return null; } }
+        function startSession(d) {
+            localStorage.setItem('fmeSession', JSON.stringify({ token: d.token, user: d.user }));
+            closeModal();
+            enterApp(d.user);
+        }
+        function enterApp(user) {
+            document.getElementById('landing').classList.add('hide');
+            document.getElementById('dashboard').classList.add('show');
+            showUser(user);
+            document.getElementById('fCategory').innerHTML = CATEGORIES.map(c => '<option>' + c + '</option>').join('');
+            showPage('dashboard');
+            renderAll();
+            fetchRates();
+        }
+        function logout() {
+            localStorage.removeItem('fmeSession');
             document.getElementById('landing').classList.remove('hide');
             document.getElementById('dashboard').classList.remove('show');
         }
-
         function showUser(u) {
             document.getElementById('userName').textContent = u.name || '';
-            document.getElementById('userEmail').textContent = u.email || '';
-            const av = document.getElementById('userAvatar');
-            if (u.picture) { av.src = u.picture; av.style.display = ''; } else { av.style.display = 'none'; }
+            document.getElementById('userEmail').textContent = (u.email || '') + (u.phone ? ' · +91 ' + u.phone : '');
+            document.getElementById('userAvatar').textContent = (u.name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
             const first = (u.name || '').split(' ')[0];
             document.getElementById('pageSubtitle').textContent = first ? 'Welcome back, ' + first : 'Welcome back';
+            document.getElementById('pwBtn').textContent = u.hasPassword ? 'Change password' : 'Set password';
         }
 
-        // ---------- storage (per Google account) ----------
-        function storeKey() { const a = getAuth(); return 'fmeExpenses:' + (a ? a.user.email : 'anon'); }
+        // ---------- set / change password ----------
+        function openPasswordPanel() {
+            const u = (getAuth() || {}).user || {};
+            document.getElementById('pwTitle').textContent = u.hasPassword ? 'Change password' : 'Set a password';
+            document.getElementById('pwCurBox').style.display = u.hasPassword ? '' : 'none';
+            ['pwCur', 'pwNew', 'pwNew2'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('pwMsg').textContent = '';
+            showPage('account');
+        }
+        async function savePassword() {
+            const msg = document.getElementById('pwMsg');
+            const pw = document.getElementById('pwNew').value, pw2 = document.getElementById('pwNew2').value;
+            msg.style.color = '#DC2626';
+            if (pw.length < 8) return msg.textContent = 'At least 8 characters.';
+            if (pw !== pw2) return msg.textContent = 'Passwords don’t match.';
+            try {
+                const d = await api('/api/me/password', { password: pw, current: document.getElementById('pwCur').value });
+                const s = getAuth(); s.user = d.user; localStorage.setItem('fmeSession', JSON.stringify(s));
+                showUser(d.user);
+                msg.style.color = '#059669'; msg.textContent = 'Password saved ✓';
+            } catch (e) { msg.textContent = e.message; }
+        }
+
+        const CATEGORIES = ['Food & Dining','Groceries','Travel','Transport','Shopping','Bills & Utilities','Entertainment','Health','Subscriptions','Loans & EMI','Transfers','Other'];
+
+        // ---------- storage (per account) ----------
+        function storeKey() { const a = getAuth(); return 'fmeExpenses:' + (a && a.user ? a.user.phone : 'anon'); }
         function loadExpenses() { try { return JSON.parse(localStorage.getItem(storeKey())) || []; } catch { return []; } }
         function saveExpenses(list) { localStorage.setItem(storeKey(), JSON.stringify(list)); }
 
@@ -891,9 +1029,7 @@
 
         function deleteExpense(id) {
             if (!confirm('Delete this expense?')) return;
-            const list = loadExpenses(), gone = list.find(e => e.id === id);
-            if (gone && gone.msgId) { const seen = loadJSON('fmeSeen', {}); seen[gone.msgId] = 'deleted'; saveJSON('fmeSeen', seen); }
-            saveExpenses(list.filter(e => e.id !== id));
+            saveExpenses(loadExpenses().filter(e => e.id !== id));
             renderAll();
         }
 
@@ -905,173 +1041,6 @@
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
             a.download = 'expenses.csv';
             a.click();
-        }
-
-
-        // ---------- categories ----------
-        const CATEGORIES = ['Food & Dining','Groceries','Travel','Transport','Shopping','Bills & Utilities','Entertainment','Health','Subscriptions','Loans & EMI','Transfers','Other'];
-        function catOptions(sel) { return CATEGORIES.map(c => '<option' + (c === sel ? ' selected' : '') + '>' + esc(c) + '</option>').join(''); }
-
-        // ---------- Gmail sync ----------
-        const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
-        function hasGmail() { const a = getAuth(); return a && (a.scope || '').includes(GMAIL_SCOPE) && a.expiresAt > Date.now() + 60000; }
-        function userKey(k) { const a = getAuth(); return k + ':' + (a ? a.user.email : 'anon'); }
-        function loadJSON(k, d) { try { return JSON.parse(localStorage.getItem(userKey(k))) ?? d; } catch { return d; } }
-        function saveJSON(k, v) { localStorage.setItem(userKey(k), JSON.stringify(v)); }
-
-        function renderSyncStatus() {
-            const a = getAuth(); if (!a) return;
-            const last = loadJSON('fmeLastSync', null);
-            const granted = (a.scope || '').includes(GMAIL_SCOPE);
-            const st = document.getElementById('syncStatus');
-            const btn = document.getElementById('syncBtn');
-            if (hasGmail()) { st.textContent = 'Connected to ' + a.user.email + (last ? ' · last synced ' + new Date(last).toLocaleString('en-IN') : ''); btn.textContent = 'Sync now'; }
-            else if (granted) { st.textContent = 'Session expired. Reconnect to sync (takes a few seconds).' + (last ? ' Last synced ' + new Date(last).toLocaleString('en-IN') : ''); btn.textContent = 'Reconnect & sync'; }
-            else { st.textContent = 'Not connected'; btn.textContent = 'Connect Gmail'; }
-        }
-
-        function syncButton() {
-            if (hasGmail()) return runSync();
-            sessionStorage.setItem('afterLogin', 'sync');
-            sessionStorage.setItem('syncDays', document.getElementById('syncDays').value);
-            startGoogleAuth(GMAIL_SCOPE);
-        }
-
-        function b64urlDecode(data) {
-            const bin = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
-            const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-            return new TextDecoder('utf-8').decode(bytes);
-        }
-        function extractBodies(payload) {
-            let text = '', html = '';
-            (function walk(p) {
-                if (!p) return;
-                if (p.body && p.body.data) {
-                    if (p.mimeType === 'text/plain') text += b64urlDecode(p.body.data) + '\n';
-                    else if (p.mimeType === 'text/html') html += b64urlDecode(p.body.data) + '\n';
-                }
-                (p.parts || []).forEach(walk);
-            })(payload);
-            return { text, html };
-        }
-
-        async function gmail(path) {
-            const a = getAuth();
-            const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/' + path, { headers: { Authorization: 'Bearer ' + a.accessToken } });
-            if (r.status === 401) { a.expiresAt = 0; localStorage.setItem('fmeAuth', JSON.stringify(a)); throw new Error('Session expired. Click "Reconnect & sync".'); }
-            if (r.status === 403) {
-                const e = await r.json().catch(() => ({}));
-                const msg = (e.error && e.error.message) || 'Access denied';
-                throw new Error(/has not been used|disabled/i.test(msg) ? 'Gmail API is not enabled in your Google Cloud project yet.' : msg);
-            }
-            if (!r.ok) throw new Error('Gmail error ' + r.status);
-            return r.json();
-        }
-
-        let syncing = false;
-        async function runSync() {
-            if (syncing) return; syncing = true;
-            const prog = document.getElementById('syncProgress');
-            const btn = document.getElementById('syncBtn'); btn.disabled = true;
-            try {
-                const days = parseInt(document.getElementById('syncDays').value, 10);
-                const q = FMEParser.buildQuery(days);
-                prog.textContent = 'Searching Gmail…';
-                let ids = [], pageToken = '';
-                do {
-                    const res = await gmail('messages?maxResults=100&q=' + encodeURIComponent(q) + (pageToken ? '&pageToken=' + pageToken : ''));
-                    ids = ids.concat((res.messages || []).map(m => m.id));
-                    pageToken = res.nextPageToken || '';
-                } while (pageToken && ids.length < 1000);
-
-                const seen = loadJSON('fmeSeen', {});
-                const pending = loadJSON('fmePending', []);
-                const pendingIds = new Set(pending.map(p => p.msgId));
-                const todo = ids.filter(id => !seen[id] && !pendingIds.has(id));
-                const unread = [];
-                let found = 0, skipped = 0, done = 0;
-
-                const worker = async () => {
-                    while (todo.length) {
-                        const id = todo.shift();
-                        try {
-                            const m = await gmail('messages/' + id + '?format=full');
-                            const h = n => ((m.payload.headers || []).find(x => x.name.toLowerCase() === n) || {}).value || '';
-                            const { text, html } = extractBodies(m.payload);
-                            const r = FMEParser.parseTransaction({ id, subject: h('subject'), from: h('from'), text, html, date: parseInt(m.internalDate, 10) });
-                            if (r.status === 'txn') { pending.push(r.txn); found++; }
-                            else if (r.status === 'unparsed') unread.push({ subject: h('subject'), from: h('from'), date: new Date(parseInt(m.internalDate, 10)).toISOString().slice(0, 10) });
-                            else skipped++;
-                        } catch (e) { if (/expired|not enabled/i.test(e.message)) throw e; }
-                        done++;
-                        prog.textContent = 'Reading emails… ' + done + ' / ' + (done + todo.length);
-                    }
-                };
-                await Promise.all(Array.from({ length: 6 }, worker));
-
-                pending.sort((x, y) => y.date.localeCompare(x.date));
-                saveJSON('fmePending', pending);
-                saveJSON('fmeUnread', unread);
-                saveJSON('fmeLastSync', Date.now());
-                prog.textContent = ids.length === 0 ? 'No transaction emails found in this period.'
-                    : 'Done. ' + found + ' new transaction' + (found === 1 ? '' : 's') + ' found' +
-                      (skipped ? ', ' + skipped + ' non-spend emails ignored (OTPs, bill payments, credits…)' : '') +
-                      (unread.length ? ', ' + unread.length + ' not recognized' : '') + '.';
-            } catch (e) {
-                prog.textContent = '⚠️ ' + e.message;
-            } finally {
-                syncing = false; btn.disabled = false;
-                renderSyncStatus(); renderReview();
-            }
-        }
-
-        function renderReview() {
-            const pending = loadJSON('fmePending', []);
-            document.getElementById('reviewBox').style.display = pending.length ? '' : 'none';
-            document.getElementById('reviewList').innerHTML = !pending.length ? '' :
-                '<table class="exp"><thead><tr><th><input type="checkbox" checked onchange="document.querySelectorAll(\'.rv-chk\').forEach(c=>c.checked=this.checked)"></th><th>Date</th><th>Merchant</th><th>Category</th><th>Paid with</th><th class="amt">Amount</th></tr></thead><tbody>' +
-                pending.map((t, i) => '<tr><td><input type="checkbox" class="rv-chk" data-i="' + i + '" checked></td><td>' + esc(t.date) +
-                    '</td><td><input class="rv-m" data-i="' + i + '" value="' + esc(t.merchant) + '" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;width:100%;min-width:140px;" title="' + esc(t.subject) + '"></td>' +
-                    '<td><select class="rv-c" data-i="' + i + '" style="border:1px solid var(--border);border-radius:6px;padding:6px;">' + catOptions(t.category) + '</select></td><td>' + esc(t.payment || '—') +
-                    '</td><td class="amt" style="' + (t.amount < 0 ? 'color:#059669;' : '') + '">' + fmt(t.amount, t.currency) + (t.amount < 0 ? '<div class="note" style="margin:0;">refund</div>' : '') + '</td></tr>').join('') +
-                '</tbody></table>';
-            const unread = loadJSON('fmeUnread', []);
-            const ub = document.getElementById('unreadBox');
-            ub.style.display = unread.length ? '' : 'none';
-            document.getElementById('unreadSummary').textContent = unread.length + ' email' + (unread.length === 1 ? '' : 's') + ' couldn\'t be read automatically';
-            document.getElementById('unreadList').innerHTML = '<table class="exp"><tbody>' + unread.map(u =>
-                '<tr><td>' + esc(u.date) + '</td><td>' + esc(u.subject) + '</td><td class="note">' + esc(u.from) + '</td></tr>').join('') + '</tbody></table>';
-        }
-
-        function reviewSelection() {
-            const pending = loadJSON('fmePending', []);
-            document.querySelectorAll('.rv-m').forEach(el => pending[el.dataset.i].merchant = el.value.trim());
-            document.querySelectorAll('.rv-c').forEach(el => pending[el.dataset.i].category = el.value);
-            const chosen = new Set([...document.querySelectorAll('.rv-chk:checked')].map(c => +c.dataset.i));
-            return { pending, chosen };
-        }
-        function approveSelected() {
-            const { pending, chosen } = reviewSelection();
-            if (!chosen.size) return;
-            const list = loadExpenses(), seen = loadJSON('fmeSeen', {});
-            const keep = [];
-            pending.forEach((t, i) => {
-                if (!chosen.has(i)) return keep.push(t);
-                list.push({ id: 'g' + t.msgId, amount: t.amount, currency: t.currency, category: t.category, date: t.date,
-                            payment: t.payment, note: t.merchant, source: 'gmail', msgId: t.msgId });
-                seen[t.msgId] = 'added';
-            });
-            saveExpenses(list); saveJSON('fmeSeen', seen); saveJSON('fmePending', keep);
-            document.getElementById('syncProgress').textContent = chosen.size + ' expense' + (chosen.size === 1 ? '' : 's') + ' added.';
-            renderReview(); renderAll();
-        }
-        function discardSelected() {
-            const { pending, chosen } = reviewSelection();
-            if (!chosen.size) return;
-            const seen = loadJSON('fmeSeen', {});
-            const keep = pending.filter((t, i) => { if (chosen.has(i)) { seen[t.msgId] = 'discarded'; return false; } return true; });
-            saveJSON('fmeSeen', seen); saveJSON('fmePending', keep);
-            renderReview();
         }
 
         // ---------- rendering ----------
@@ -1095,7 +1064,6 @@
                     const inBase = e.currency !== BASE && toBase(e.amount, e.currency) !== null
                         ? '<div class="note" style="margin:2px 0 0;">≈ ' + fmt(toBase(e.amount, e.currency), BASE) + '</div>' : '';
                     return '<tr><td>' + esc(e.date) + '</td><td>' + (esc(e.note) || '<span class="note">—</span>') +
-                        (e.source === 'gmail' ? ' <span class="cat-pill" style="background:#ECFDF5;color:#059669;">Gmail</span>' : '') +
                         '</td><td><span class="cat-pill">' + esc(e.category) + '</span></td><td>' + (esc(e.payment) || '—') +
                         '</td><td class="amt">' + fmt(e.amount, e.currency) + inBase + '</td>' +
                         (withDelete ? '<td><button class="btn-ghost" onclick="deleteExpense(\'' + e.id + '\')">Delete</button></td>' : '') + '</tr>';
@@ -1155,39 +1123,23 @@
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById('page-' + page).classList.add('active');
             document.querySelectorAll('.nav-menu button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
-            const titles = { dashboard: 'Dashboard', add: 'Add Expense', expenses: 'All Expenses', sync: 'Auto Sync', analytics: 'Analytics' };
+            const titles = { dashboard: 'Dashboard', add: 'Add Expense', expenses: 'All Expenses', analytics: 'Analytics', account: 'Account' };
             document.getElementById('pageTitle').textContent = titles[page];
-            if (page === 'sync') renderSyncStatus();
             if (page === 'add' && !document.getElementById('fDate').value) {
                 document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            fetchConfig();
-            // clear leftovers from the old code-based login
-            localStorage.removeItem('authCode');
-            localStorage.removeItem('authTime');
-
-            const auth = getAuth();
-            if (auth && auth.user) {
-                document.getElementById('landing').classList.add('hide');
-                document.getElementById('dashboard').classList.add('show');
-                showUser(auth.user);
-                document.getElementById('fCategory').innerHTML = catOptions('Food & Dining');
-                const after = sessionStorage.getItem('afterLogin');
-                sessionStorage.removeItem('afterLogin');
-                showPage(after === 'sync' ? 'sync' : 'dashboard');
-                renderAll(); renderSyncStatus(); renderReview();
-                fetchRates();
-                if (after === 'sync' && hasGmail()) {
-                    const d = sessionStorage.getItem('syncDays'); if (d) document.getElementById('syncDays').value = d;
-                    runSync();
-                }
-            } else {
-                document.getElementById('landing').classList.remove('hide');
-                document.getElementById('dashboard').classList.remove('show');
-            }
+        document.addEventListener('DOMContentLoaded', async function () {
+            ['authCode', 'authTime', 'fmeAuth'].forEach(k => localStorage.removeItem(k));   // old Google login leftovers
+            ['suName', 'suEmail', 'suPass', 'suPass2'].forEach(id => document.getElementById(id).addEventListener('input', updateCreateBtn));
+            const s = getAuth();
+            if (!s || !s.token) return logout();
+            enterApp(s.user);
+            try {
+                const d = await api('/api/me');
+                s.user = d.user; localStorage.setItem('fmeSession', JSON.stringify(s)); showUser(d.user);
+            } catch (e) { if (e.status === 401) logout(); }
         });
     </script>
 </body>
