@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Find My Expense</title>
-    <link rel="icon" href="https://ik.imagekit.io/credproject/Find%20My%20Expense%20logo?updatedAt=1791178407848">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#2E7A4E">
+    <meta name="description" content="Track every rupee, in any currency, in seconds.">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="My Expense">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -579,6 +587,31 @@
         .auth-field input:focus { outline: 2px solid #E6F1E9; border-color: #2E7A4E; }
         .auth-switch a { color: #2E7A4E; }
         .auth-msg.info { color: #1F5A38; background: #E6F1E9; }
+
+        /* ===== PWA / install ===== */
+        .install-sheet { text-align: center; max-width: 420px; }
+        .install-icon { width: 72px; height: 72px; border-radius: 18px; margin: 4px auto 14px; display: block; box-shadow: 0 6px 18px rgba(46,122,78,.25); }
+        .steps { list-style: none; text-align: left; margin: 6px 0 4px; padding: 0; counter-reset: s; }
+        .steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid #EEF1ED; font-size: 15px; color: #16201A; line-height: 1.45; }
+        .steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: #E6F1E9; color: #1F5A38; font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+        .steps .kbd { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border: 1px solid #DDE2DC; border-radius: 6px; background: #F8FAF7; font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+        .steps .kbd svg { width: 15px; height: 15px; fill: none; stroke: #2D78AE; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .install-note { font-size: 13px; color: #66706A; margin-top: 10px; text-align: left; }
+        .install-cta { width: 100%; padding: 14px; border: 0; border-radius: 12px; background: #2E7A4E; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .install-banner { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 12px 14px; margin-bottom: 16px; }
+        .install-banner[hidden], .get-app[hidden] { display: none !important; }
+        .install-banner img { width: 40px; height: 40px; border-radius: 10px; }
+        .ib-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .ib-text strong { font-size: 14.5px; }
+        .ib-text span { font-size: 12.5px; color: var(--muted); }
+        .install-banner .btn { padding: 8px 14px; }
+        .ib-close { border: 0; background: none; color: var(--muted); width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; border-radius: 8px; }
+        .ib-close .ic { width: 16px; height: 16px; }
+        /* installed app: respect notch / home indicator */
+        @media (display-mode: standalone) {
+            .main { padding-top: calc(20px + env(safe-area-inset-top)); }
+            .landing .nav { padding-top: calc(16px + env(safe-area-inset-top)); }
+        }
     </style>
 </head>
 <body>
@@ -589,6 +622,7 @@
                 <img src="https://ik.imagekit.io/credproject/Find%20My%20Expense%20logo?updatedAt=1791178407848" alt="Find My Expense">
             </div>
             <div class="nav-buttons">
+                <button class="btn btn-login get-app" onclick="openInstall()" hidden>Get the app</button>
                 <button class="btn btn-login" onclick="openModal('login')">Log in</button>
                 <button class="btn btn-signup" onclick="openModal('signup')">Sign up</button>
             </div>
@@ -700,6 +734,16 @@
         </div>
     </div>
 
+    <div class="modal" id="installModal">
+        <div class="modal-content install-sheet">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <img class="install-icon" src="/icons/icon-192.png" alt="">
+            <div class="modal-title">Install Find My Expense</div>
+            <div class="modal-subtitle">Get it on your home screen. It opens full screen, like any other app, and needs no app store.</div>
+            <div id="installBody"></div>
+        </div>
+    </div>
+
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
       <defs>
         <symbol id="i-home" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
@@ -711,6 +755,10 @@
         <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
         <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
         <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+        <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M8 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-2"/></symbol>
+        <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+        <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
         <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
         <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
@@ -770,6 +818,12 @@
             </header>
 
             <section class="view active" id="page-dashboard">
+                <div class="install-banner" id="installBanner" hidden>
+                    <img src="/icons/icon-192.png" alt="">
+                    <div class="ib-text"><strong>Add to your home screen</strong><span>Open your expenses in one tap, full screen.</span></div>
+                    <button class="btn btn-solid" onclick="openInstall()">Install</button>
+                    <button class="ib-close" onclick="dismissBanner()" aria-label="Dismiss"><svg class="ic"><use href="#i-x"/></svg></button>
+                </div>
                 <div class="hero-panel">
                     <div class="hero-top">
                         <div>
@@ -855,6 +909,7 @@
                         <div class="field"><label class="lbl" for="pfPhone">Mobile number</label><input id="pfPhone" type="text" disabled></div>
                         <div class="form-foot"><span class="form-msg" id="pfMsg" role="status"></span><button class="btn btn-solid" onclick="saveProfile()">Save profile</button></div>
                     </div>
+                    <button class="btn btn-quiet get-app" onclick="openInstall()" hidden><svg class="ic"><use href="#i-phone"/></svg>Install the app on this device</button>
                     <button class="btn btn-quiet only-mobile-flex" onclick="logout()"><svg class="ic"><use href="#i-logout"/></svg>Log out</button>
                     <div class="panel">
                         <h2 id="pwTitle">Set a password</h2>
@@ -880,6 +935,57 @@
                 if (d && d.rates) { FX = d.rates; fxLoaded = true; }
             } catch (e) { console.warn('FX rates unavailable'); }
             renderAll();
+        }
+
+
+        // ---------- installable app (PWA) ----------
+        const ua = navigator.userAgent;
+        const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isAndroid = /android/i.test(ua);
+        const inAppBrowser = /FBAN|FBAV|Instagram|LinkedInApp|Line\/|GSA\/|Twitter|Snapchat/i.test(ua);
+        const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        let deferredPrompt = null;
+
+        if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; refreshInstallUI(); });
+        window.addEventListener('appinstalled', () => { deferredPrompt = null; closeModal(); refreshInstallUI(); });
+
+        function canOfferInstall() { return !isStandalone() && (isIOS || isAndroid || !!deferredPrompt); }
+        function refreshInstallUI() {
+            const show = canOfferInstall();
+            document.querySelectorAll('.get-app').forEach(b => b.hidden = !show);
+            const mobile = isIOS || isAndroid;
+            document.getElementById('installBanner').hidden = !(show && mobile && !localStorage.getItem('fmeInstallDismissed'));
+        }
+        function dismissBanner() { localStorage.setItem('fmeInstallDismissed', '1'); refreshInstallUI(); }
+
+        const SHARE_KBD = '<span class="kbd"><svg viewBox="0 0 24 24"><use href="#i-share"/></svg>Share</span>';
+        function openInstall() {
+            const body = document.getElementById('installBody');
+            if (inAppBrowser) {
+                body.innerHTML = '<ol class="steps"><li><span>This page is open inside another app. Tap the <span class="kbd">•••</span> menu and choose <b>Open in ' + (isIOS ? 'Safari' : 'Chrome') + '</b>.</span></li><li><span>Then tap <b>Get the app</b> again.</span></li></ol>';
+            } else if (isIOS) {
+                body.innerHTML = '<ol class="steps">' +
+                    '<li><span>Tap ' + SHARE_KBD + ' in the browser bar' + (/CriOS|FxiOS|EdgiOS/.test(ua) ? ' (top right in Chrome)' : ' at the bottom of Safari') + '.</span></li>' +
+                    '<li><span>Scroll down and tap <span class="kbd">Add to Home Screen</span>.</span></li>' +
+                    '<li><span>Tap <b>Add</b>. Find My Expense now opens from your home screen.</span></li></ol>' +
+                    '<p class="install-note">Log in once inside the installed app. iPhone keeps the home-screen app separate from your browser.</p>';
+            } else if (deferredPrompt) {
+                body.innerHTML = '<button class="install-cta" onclick="runInstall()">Install app</button><p class="install-note">Free, about 1 MB, and it updates automatically.</p>';
+            } else {
+                body.innerHTML = '<ol class="steps"><li><span>Open the browser menu <span class="kbd">⋮</span> at the top right.</span></li>' +
+                    '<li><span>Tap <span class="kbd">Install app</span> or <span class="kbd">Add to Home screen</span>.</span></li>' +
+                    '<li><span>Confirm. Find My Expense now opens from your home screen.</span></li></ol>';
+            }
+            openModal('install');
+        }
+        async function runInstall() {
+            if (!deferredPrompt) return openInstall();
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            if (outcome === 'accepted') closeModal(); else openInstall();
+            refreshInstallUI();
         }
 
         // ---------- modals ----------
@@ -1298,12 +1404,15 @@
         document.addEventListener('DOMContentLoaded', async function () {
             ['authCode', 'authTime', 'fmeAuth'].forEach(k => localStorage.removeItem(k));   // old Google login leftovers
             ['suName', 'suEmail', 'suPass', 'suPass2'].forEach(id => document.getElementById(id).addEventListener('input', updateCreateBtn));
+            refreshInstallUI();
             const s = getAuth();
             if (!s || !s.token) return logout();
             enterApp(s.user);
+            const want = new URLSearchParams(location.search).get('page');
+            if (want === 'add') showPage('add');
             try {
                 const d = await api('/api/me');
-                s.user = d.user; localStorage.setItem('fmeSession', JSON.stringify(s)); showUser(d.user); showPage('dashboard');
+                s.user = d.user; localStorage.setItem('fmeSession', JSON.stringify(s)); showUser(d.user); if (!want) showPage('dashboard');
             } catch (e) { if (e.status === 401) logout(); }
         });
     </script>

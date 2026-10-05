@@ -10,11 +10,33 @@ const indexContent = fs.readFileSync(indexPath, 'utf8');
 app.set('trust proxy', true);
 app.use(express.json());
 
+// PWA files: manifest, service worker, icons
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+app.get('/manifest.webmanifest', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.sendFile(path.join(__dirname, 'public', 'manifest.webmanifest'));
+});
+app.use('/icons', express.static(path.join(__dirname, 'public', 'icons'), { maxAge: '7d' }));
+
 // Root route
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(indexContent);
 });
+
+// ---- PWA files ----
+app.get('/manifest.webmanifest', (req, res) => {
+  res.type('application/manifest+json').set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'manifest.webmanifest'));
+});
+app.get('/sw.js', (req, res) => {
+  res.type('application/javascript').set({ 'Cache-Control': 'no-cache', 'Service-Worker-Allowed': '/' }).sendFile(path.join(__dirname, 'sw.js'));
+});
+app.use('/icons', express.static(path.join(__dirname, 'icons'), { maxAge: '7d', fallthrough: false }));
+app.get('/favicon.ico', (req, res) => res.sendFile(path.join(__dirname, 'icons', 'favicon-32.png')));
 
 // Health check
 app.get('/health', (req, res) => {
