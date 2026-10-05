@@ -24,13 +24,14 @@ app.get('/health', (req, res) => {
 
 // API endpoint to get Google Client ID (to avoid hardcoding in frontend)
 app.get('/api/config', (req, res) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
+  const clientId = '529180440880-bi2adu90l55pooo5epebd6sh673pkdhe.apps.googleusercontent.com';
+  const apiUrl = 'https://expense-calculator.fly.dev';
   console.log('📋 /api/config called');
-  console.log('   GOOGLE_CLIENT_ID env var:', process.env.GOOGLE_CLIENT_ID ? '✅ SET' : '❌ NOT SET');
   console.log('   Client ID being returned:', clientId);
+  console.log('   API URL being returned:', apiUrl);
   res.json({ 
     googleClientId: clientId,
-    apiUrl: process.env.API_URL || 'http://localhost:3000'
+    apiUrl: apiUrl
   });
 });
 
