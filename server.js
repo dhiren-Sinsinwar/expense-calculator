@@ -8,6 +8,21 @@ const indexPath = path.join(__dirname, 'index.html');
 const indexContent = fs.readFileSync(indexPath, 'utf8');
 
 app.set('trust proxy', true);
+
+// ---- one canonical address: https://findmyexpense.com ----
+const CANONICAL_HOST = process.env.CANONICAL_HOST || 'findmyexpense.com';
+const REDIRECT_HOSTS = new Set(['www.findmyexpense.com', 'expense-calculator.fly.dev']);
+app.use((req, res, next) => {
+  const host = String(req.headers.host || '').toLowerCase().split(':')[0];
+  if (REDIRECT_HOSTS.has(host) && req.path !== '/health') {
+    return res.redirect(301, 'https://' + CANONICAL_HOST + req.originalUrl);
+  }
+  next();
+});
+
+// Real visitor IP: Cloudflare puts it in CF-Connecting-IP (otherwise every visitor looks like a Cloudflare server)
+function clientIp(req) { return String(req.headers['cf-connecting-ip'] || req.ip || 'unknown'); }
+
 app.use(express.json());
 
 // PWA files: manifest, service worker, icons
@@ -134,7 +149,7 @@ app.post('/api/otp/send', async (req, res) => {
   if (purpose === 'signup' && findByPhone(phone)) return res.status(409).json({ error: 'This number is already registered. Please log in instead.', code: 'EXISTS' });
   if (purpose === 'login' && !findByPhone(phone)) return res.status(404).json({ error: 'No account found for this number. Please sign up first.', code: 'NOT_FOUND' });
 
-  const ip = req.ip || 'unknown';
+  const ip = clientIp(req);
   const ipList = recent(ipSends.get(ip), 3600e3);
   if (ipList.length >= MAX_SENDS_PER_IP_HOUR) return res.status(429).json({ error: 'Too many OTP requests. Try again later.' });
 
@@ -238,7 +253,7 @@ app.post('/api/signup', (req, res) => {
 app.post('/api/login/password', (req, res) => {
   const id = String((req.body && req.body.identifier) || '').trim();
   const password = String((req.body && req.body.password) || '');
-  const key = id.toLowerCase(), ipKey = 'ip:' + (req.ip || '');
+  const key = id.toLowerCase(), ipKey = 'ip:' + clientIp(req);
   if (tooManyFails(key) || tooManyFails(ipKey)) return res.status(429).json({ error: 'Too many attempts. Try again in 15 minutes, or log in with OTP.' });
   const phone = normalizePhone(id);
   const u = phone ? findByPhone(phone) : findByEmail(id);
