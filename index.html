@@ -550,11 +550,42 @@
     <div class="modal" id="signupModal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">✕</button>
-            <div class="modal-title">Create Account</div>
-            <div class="modal-subtitle">Get started today</div>
-            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px;" onclick="googleSignup()">
+            <div class="modal-title">Get Started Free</div>
+            <div class="modal-subtitle">3 simple steps to track your expenses</div>
+            
+            <div style="margin: 24px 0; background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; border-left: 3px solid #6366F1;">
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #6366F1; color: white; border-radius: 50%; font-weight: bold; flex-shrink: 0;">1</div>
+                    <div>
+                        <div style="font-weight: 600; color: white; margin-bottom: 4px;">Sign up with Google</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5;">Click the button below to create your account using your Google account</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #6366F1; color: white; border-radius: 50%; font-weight: bold; flex-shrink: 0;">2</div>
+                    <div>
+                        <div style="font-weight: 600; color: white; margin-bottom: 4px;">Add your expenses</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5;">Manually enter expenses or connect Gmail to auto-sync your bank alerts</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #6366F1; color: white; border-radius: 50%; font-weight: bold; flex-shrink: 0;">3</div>
+                    <div>
+                        <div style="font-weight: 600; color: white; margin-bottom: 4px;">Track & analyze</div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5;">View your spending summary, trends, and export reports anytime</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="googleSignup()">
                 <span style="margin-right: 8px;">🔵</span> Sign up with Google
             </button>
+            
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                <div style="font-size: 12px; color: rgba(255,255,255,0.6);">No credit card required • Free forever • 100% secure</div>
+            </div>
         </div>
     </div>
 
@@ -563,7 +594,19 @@
             <button class="modal-close" onclick="closeModal()">✕</button>
             <div class="modal-title">Welcome Back</div>
             <div class="modal-subtitle">Login to your account</div>
-            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px;" onclick="googleLogin()">
+            
+            <div style="margin: 20px 0; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; border-left: 3px solid #6366F1;">
+                <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6;">
+                    <div style="margin-bottom: 8px;"><strong>Once logged in, you can:</strong></div>
+                    <div>✓ View your expense dashboard</div>
+                    <div>✓ Add manual transactions</div>
+                    <div>✓ Sync Gmail transactions</div>
+                    <div>✓ Track spending by category</div>
+                    <div>✓ Export reports (CSV/PDF)</div>
+                </div>
+            </div>
+            
+            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="googleLogin()">
                 <span style="margin-right: 8px;">🔵</span> Login with Google
             </button>
         </div>
