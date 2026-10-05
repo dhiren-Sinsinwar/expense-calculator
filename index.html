@@ -581,7 +581,25 @@
                 </div>
             </div>
             
-            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="googleSignup()">
+            <div style="margin-top: 20px; padding: 16px; background: #fff3cd; border-radius: 8px; border-left: 3px solid #ffc107;">
+                <div style="font-weight: 600; color: #856404; margin-bottom: 8px; font-size: 14px;">⚙️ Setup Required</div>
+                <div style="font-size: 12px; color: #856404; line-height: 1.6; margin-bottom: 8px;">Before signing up, you need to:</div>
+                <div style="font-size: 12px; color: #856404; line-height: 1.8;">
+                    1. Go to <a href="https://console.cloud.google.com" target="_blank" style="color: #0056b3; text-decoration: underline;">Google Cloud Console</a><br>
+                    2. Create a new project named "Find My Expense"<br>
+                    3. Enable "Gmail API"<br>
+                    4. Create OAuth 2.0 credentials (Desktop app)<br>
+                    5. Copy the Client ID<br>
+                    6. Paste it in the settings below
+                </div>
+            </div>
+            
+            <div style="margin-top: 16px; margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #333; margin-bottom: 8px;">Google Client ID:</label>
+                <input type="text" id="googleClientId" placeholder="YOUR_GOOGLE_CLIENT_ID_HERE" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+            </div>
+            
+            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="handleGoogleSignup()">
                 <span style="margin-right: 8px;">🔵</span> Sign up with Google
             </button>
             
@@ -608,7 +626,12 @@
                 </div>
             </div>
             
-            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="googleLogin()">
+            <div style="margin-top: 16px; margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #333; margin-bottom: 8px;">Google Client ID:</label>
+                <input type="text" id="googleClientIdLogin" placeholder="YOUR_GOOGLE_CLIENT_ID_HERE" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+            </div>
+            
+            <button class="btn btn-signup" style="width: 100%; padding: 14px; font-size: 16px; background: white; color: #6366F1; border: none; font-weight: 600;" onclick="handleGoogleLogin()">
                 <span style="margin-right: 8px;">🔵</span> Login with Google
             </button>
         </div>
@@ -682,16 +705,36 @@
             document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
         }
 
-        function googleSignup() {
-            // TODO: Implement Google OAuth signup
-            alert('Google signup coming soon! Setup Google OAuth Client ID in settings.');
-            // window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=...&scope=email profile`;
+        function handleGoogleSignup() {
+            const clientId = document.getElementById('googleClientId').value.trim();
+            if (!clientId) {
+                alert('Please enter your Google Client ID first. See the setup steps above.');
+                return;
+            }
+            googleSignup(clientId);
         }
 
-        function googleLogin() {
-            // TODO: Implement Google OAuth login
-            alert('Google login coming soon! Setup Google OAuth Client ID in settings.');
-            // window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=...&scope=email profile`;
+        function googleSignup(clientId) {
+            // TODO: Implement Google OAuth signup with client ID
+            const redirectUri = window.location.origin + '/auth/callback';
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20https://www.googleapis.com/auth/gmail.readonly`;
+            window.location.href = authUrl;
+        }
+
+        function handleGoogleLogin() {
+            const clientId = document.getElementById('googleClientIdLogin').value.trim();
+            if (!clientId) {
+                alert('Please enter your Google Client ID first.');
+                return;
+            }
+            googleLogin(clientId);
+        }
+
+        function googleLogin(clientId) {
+            // TODO: Implement Google OAuth login with client ID
+            const redirectUri = window.location.origin + '/auth/callback';
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20https://www.googleapis.com/auth/gmail.readonly`;
+            window.location.href = authUrl;
         }
 
         function logout() {
