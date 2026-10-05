@@ -74,6 +74,7 @@ app.get('/auth/callback', (req, res) => {
         const expiresIn = parseInt(params.get('expires_in') || '3600', 10);
         localStorage.setItem('fmeAuth', JSON.stringify({
           accessToken: token,
+          scope: params.get('scope') || '',
           expiresAt: Date.now() + expiresIn * 1000,
           user: { name: u.name || u.email, email: u.email, picture: u.picture || '' }
         }));

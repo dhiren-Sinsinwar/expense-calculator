@@ -703,7 +703,7 @@
                         <div class="field"><label for="fCurrency">Currency</label>
                             <select id="fCurrency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select></div>
                         <div class="field"><label for="fCategory">Category</label>
-                            <select id="fCategory"><option>Food & Dining</option><option>Groceries</option><option>Travel</option><option>Transport</option><option>Shopping</option><option>Bills & Utilities</option><option>Entertainment</option><option>Health</option><option>Subscriptions</option><option>Other</option></select></div>
+                            <select id="fCategory"></select></div>
                         <div class="field"><label for="fDate">Date</label><input id="fDate" type="date"></div>
                         <div class="field"><label for="fPayment">Paid with</label><input id="fPayment" type="text" placeholder="e.g. HDFC card, UPI, cash"></div>
                         <div class="field full"><label for="fNote">Description</label><input id="fNote" type="text" placeholder="What was this for?"></div>
@@ -727,9 +727,37 @@
 
             <div class="page" id="page-sync">
                 <div class="card">
-                    <h3>Gmail auto-sync</h3>
-                    <p class="note">This will read transaction alert emails (card spends, UPI debits) and turn them into expenses automatically. It needs the read-only Gmail permission and an email parser, which is the next build step. Manual entry works in the meantime.</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
+                        <div>
+                            <h3 style="margin-bottom:4px;">Gmail auto-sync</h3>
+                            <div class="note" id="syncStatus" style="margin:0;"></div>
+                        </div>
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <select id="syncDays" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;">
+                                <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 90 days</option><option value="180">Last 6 months</option></select>
+                            <button class="btn-primary" id="syncBtn" onclick="syncButton()">Connect Gmail</button>
+                        </div>
+                    </div>
+                    <div class="note" id="syncProgress"></div>
+                    <p class="note">Read-only access. Only transaction alerts are searched, and only the extracted amount, merchant, date and card are saved, never the email itself.</p>
                 </div>
+
+                <div id="reviewBox" style="display:none;">
+                    <h2 style="margin-top:32px;">Review found transactions</h2>
+                    <p class="note">Check categories, then add the ones you want. Refunds are shown in green and reduce your totals.</p>
+                    <div class="toolbar">
+                        <button class="btn-primary" onclick="approveSelected()">Add selected</button>
+                        <button class="btn-ghost" onclick="discardSelected()">Discard selected</button>
+                    </div>
+                    <div class="card table-wrap" id="reviewList"></div>
+                </div>
+
+                <details class="card" id="unreadBox" style="display:none;">
+                    <summary style="cursor:pointer;font-weight:600;" id="unreadSummary"></summary>
+                    <p class="note">These looked like transaction emails but the format wasn't recognized. Share one (amounts can be blurred) and the parser can be taught that format.</p>
+                    <div class="table-wrap" id="unreadList"></div>
+                </details>
             </div>
 
             <div class="page" id="page-analytics">
@@ -742,6 +770,7 @@
         </div>
     </div>
 
+    <script src="/gmail-parser.js"></script>
     <script>
         let GOOGLE_CLIENT_ID = '529180440880-bi2adu90l55pooo5epebd6sh673pkdhe.apps.googleusercontent.com';
         let FX = { INR: 1 };          // units of currency per 1 INR
@@ -767,16 +796,16 @@
         function openModal(type) { document.getElementById(type + 'Modal').classList.add('show'); }
         function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('show')); }
 
-        function startGoogleAuth() {
+        function startGoogleAuth(extraScope) {
             const state = crypto.getRandomValues(new Uint32Array(4)).join('-');
             sessionStorage.setItem('oauthState', state);
             const p = new URLSearchParams({
                 client_id: GOOGLE_CLIENT_ID,
                 redirect_uri: window.location.origin + '/auth/callback',
                 response_type: 'token',
-                scope: 'openid email profile',
+                scope: 'openid email profile' + (extraScope ? ' ' + extraScope : ''),
                 include_granted_scopes: 'true',
-                prompt: 'select_account',
+                prompt: extraScope ? 'consent' : 'select_account',
                 state
             });
             window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
@@ -862,7 +891,9 @@
 
         function deleteExpense(id) {
             if (!confirm('Delete this expense?')) return;
-            saveExpenses(loadExpenses().filter(e => e.id !== id));
+            const list = loadExpenses(), gone = list.find(e => e.id === id);
+            if (gone && gone.msgId) { const seen = loadJSON('fmeSeen', {}); seen[gone.msgId] = 'deleted'; saveJSON('fmeSeen', seen); }
+            saveExpenses(list.filter(e => e.id !== id));
             renderAll();
         }
 
@@ -874,6 +905,173 @@
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
             a.download = 'expenses.csv';
             a.click();
+        }
+
+
+        // ---------- categories ----------
+        const CATEGORIES = ['Food & Dining','Groceries','Travel','Transport','Shopping','Bills & Utilities','Entertainment','Health','Subscriptions','Loans & EMI','Transfers','Other'];
+        function catOptions(sel) { return CATEGORIES.map(c => '<option' + (c === sel ? ' selected' : '') + '>' + esc(c) + '</option>').join(''); }
+
+        // ---------- Gmail sync ----------
+        const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
+        function hasGmail() { const a = getAuth(); return a && (a.scope || '').includes(GMAIL_SCOPE) && a.expiresAt > Date.now() + 60000; }
+        function userKey(k) { const a = getAuth(); return k + ':' + (a ? a.user.email : 'anon'); }
+        function loadJSON(k, d) { try { return JSON.parse(localStorage.getItem(userKey(k))) ?? d; } catch { return d; } }
+        function saveJSON(k, v) { localStorage.setItem(userKey(k), JSON.stringify(v)); }
+
+        function renderSyncStatus() {
+            const a = getAuth(); if (!a) return;
+            const last = loadJSON('fmeLastSync', null);
+            const granted = (a.scope || '').includes(GMAIL_SCOPE);
+            const st = document.getElementById('syncStatus');
+            const btn = document.getElementById('syncBtn');
+            if (hasGmail()) { st.textContent = 'Connected to ' + a.user.email + (last ? ' · last synced ' + new Date(last).toLocaleString('en-IN') : ''); btn.textContent = 'Sync now'; }
+            else if (granted) { st.textContent = 'Session expired. Reconnect to sync (takes a few seconds).' + (last ? ' Last synced ' + new Date(last).toLocaleString('en-IN') : ''); btn.textContent = 'Reconnect & sync'; }
+            else { st.textContent = 'Not connected'; btn.textContent = 'Connect Gmail'; }
+        }
+
+        function syncButton() {
+            if (hasGmail()) return runSync();
+            sessionStorage.setItem('afterLogin', 'sync');
+            sessionStorage.setItem('syncDays', document.getElementById('syncDays').value);
+            startGoogleAuth(GMAIL_SCOPE);
+        }
+
+        function b64urlDecode(data) {
+            const bin = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+            const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+            return new TextDecoder('utf-8').decode(bytes);
+        }
+        function extractBodies(payload) {
+            let text = '', html = '';
+            (function walk(p) {
+                if (!p) return;
+                if (p.body && p.body.data) {
+                    if (p.mimeType === 'text/plain') text += b64urlDecode(p.body.data) + '\n';
+                    else if (p.mimeType === 'text/html') html += b64urlDecode(p.body.data) + '\n';
+                }
+                (p.parts || []).forEach(walk);
+            })(payload);
+            return { text, html };
+        }
+
+        async function gmail(path) {
+            const a = getAuth();
+            const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/' + path, { headers: { Authorization: 'Bearer ' + a.accessToken } });
+            if (r.status === 401) { a.expiresAt = 0; localStorage.setItem('fmeAuth', JSON.stringify(a)); throw new Error('Session expired. Click "Reconnect & sync".'); }
+            if (r.status === 403) {
+                const e = await r.json().catch(() => ({}));
+                const msg = (e.error && e.error.message) || 'Access denied';
+                throw new Error(/has not been used|disabled/i.test(msg) ? 'Gmail API is not enabled in your Google Cloud project yet.' : msg);
+            }
+            if (!r.ok) throw new Error('Gmail error ' + r.status);
+            return r.json();
+        }
+
+        let syncing = false;
+        async function runSync() {
+            if (syncing) return; syncing = true;
+            const prog = document.getElementById('syncProgress');
+            const btn = document.getElementById('syncBtn'); btn.disabled = true;
+            try {
+                const days = parseInt(document.getElementById('syncDays').value, 10);
+                const q = FMEParser.buildQuery(days);
+                prog.textContent = 'Searching Gmail…';
+                let ids = [], pageToken = '';
+                do {
+                    const res = await gmail('messages?maxResults=100&q=' + encodeURIComponent(q) + (pageToken ? '&pageToken=' + pageToken : ''));
+                    ids = ids.concat((res.messages || []).map(m => m.id));
+                    pageToken = res.nextPageToken || '';
+                } while (pageToken && ids.length < 1000);
+
+                const seen = loadJSON('fmeSeen', {});
+                const pending = loadJSON('fmePending', []);
+                const pendingIds = new Set(pending.map(p => p.msgId));
+                const todo = ids.filter(id => !seen[id] && !pendingIds.has(id));
+                const unread = [];
+                let found = 0, skipped = 0, done = 0;
+
+                const worker = async () => {
+                    while (todo.length) {
+                        const id = todo.shift();
+                        try {
+                            const m = await gmail('messages/' + id + '?format=full');
+                            const h = n => ((m.payload.headers || []).find(x => x.name.toLowerCase() === n) || {}).value || '';
+                            const { text, html } = extractBodies(m.payload);
+                            const r = FMEParser.parseTransaction({ id, subject: h('subject'), from: h('from'), text, html, date: parseInt(m.internalDate, 10) });
+                            if (r.status === 'txn') { pending.push(r.txn); found++; }
+                            else if (r.status === 'unparsed') unread.push({ subject: h('subject'), from: h('from'), date: new Date(parseInt(m.internalDate, 10)).toISOString().slice(0, 10) });
+                            else skipped++;
+                        } catch (e) { if (/expired|not enabled/i.test(e.message)) throw e; }
+                        done++;
+                        prog.textContent = 'Reading emails… ' + done + ' / ' + (done + todo.length);
+                    }
+                };
+                await Promise.all(Array.from({ length: 6 }, worker));
+
+                pending.sort((x, y) => y.date.localeCompare(x.date));
+                saveJSON('fmePending', pending);
+                saveJSON('fmeUnread', unread);
+                saveJSON('fmeLastSync', Date.now());
+                prog.textContent = ids.length === 0 ? 'No transaction emails found in this period.'
+                    : 'Done. ' + found + ' new transaction' + (found === 1 ? '' : 's') + ' found' +
+                      (skipped ? ', ' + skipped + ' non-spend emails ignored (OTPs, bill payments, credits…)' : '') +
+                      (unread.length ? ', ' + unread.length + ' not recognized' : '') + '.';
+            } catch (e) {
+                prog.textContent = '⚠️ ' + e.message;
+            } finally {
+                syncing = false; btn.disabled = false;
+                renderSyncStatus(); renderReview();
+            }
+        }
+
+        function renderReview() {
+            const pending = loadJSON('fmePending', []);
+            document.getElementById('reviewBox').style.display = pending.length ? '' : 'none';
+            document.getElementById('reviewList').innerHTML = !pending.length ? '' :
+                '<table class="exp"><thead><tr><th><input type="checkbox" checked onchange="document.querySelectorAll(\'.rv-chk\').forEach(c=>c.checked=this.checked)"></th><th>Date</th><th>Merchant</th><th>Category</th><th>Paid with</th><th class="amt">Amount</th></tr></thead><tbody>' +
+                pending.map((t, i) => '<tr><td><input type="checkbox" class="rv-chk" data-i="' + i + '" checked></td><td>' + esc(t.date) +
+                    '</td><td><input class="rv-m" data-i="' + i + '" value="' + esc(t.merchant) + '" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;width:100%;min-width:140px;" title="' + esc(t.subject) + '"></td>' +
+                    '<td><select class="rv-c" data-i="' + i + '" style="border:1px solid var(--border);border-radius:6px;padding:6px;">' + catOptions(t.category) + '</select></td><td>' + esc(t.payment || '—') +
+                    '</td><td class="amt" style="' + (t.amount < 0 ? 'color:#059669;' : '') + '">' + fmt(t.amount, t.currency) + (t.amount < 0 ? '<div class="note" style="margin:0;">refund</div>' : '') + '</td></tr>').join('') +
+                '</tbody></table>';
+            const unread = loadJSON('fmeUnread', []);
+            const ub = document.getElementById('unreadBox');
+            ub.style.display = unread.length ? '' : 'none';
+            document.getElementById('unreadSummary').textContent = unread.length + ' email' + (unread.length === 1 ? '' : 's') + ' couldn\'t be read automatically';
+            document.getElementById('unreadList').innerHTML = '<table class="exp"><tbody>' + unread.map(u =>
+                '<tr><td>' + esc(u.date) + '</td><td>' + esc(u.subject) + '</td><td class="note">' + esc(u.from) + '</td></tr>').join('') + '</tbody></table>';
+        }
+
+        function reviewSelection() {
+            const pending = loadJSON('fmePending', []);
+            document.querySelectorAll('.rv-m').forEach(el => pending[el.dataset.i].merchant = el.value.trim());
+            document.querySelectorAll('.rv-c').forEach(el => pending[el.dataset.i].category = el.value);
+            const chosen = new Set([...document.querySelectorAll('.rv-chk:checked')].map(c => +c.dataset.i));
+            return { pending, chosen };
+        }
+        function approveSelected() {
+            const { pending, chosen } = reviewSelection();
+            if (!chosen.size) return;
+            const list = loadExpenses(), seen = loadJSON('fmeSeen', {});
+            const keep = [];
+            pending.forEach((t, i) => {
+                if (!chosen.has(i)) return keep.push(t);
+                list.push({ id: 'g' + t.msgId, amount: t.amount, currency: t.currency, category: t.category, date: t.date,
+                            payment: t.payment, note: t.merchant, source: 'gmail', msgId: t.msgId });
+                seen[t.msgId] = 'added';
+            });
+            saveExpenses(list); saveJSON('fmeSeen', seen); saveJSON('fmePending', keep);
+            document.getElementById('syncProgress').textContent = chosen.size + ' expense' + (chosen.size === 1 ? '' : 's') + ' added.';
+            renderReview(); renderAll();
+        }
+        function discardSelected() {
+            const { pending, chosen } = reviewSelection();
+            if (!chosen.size) return;
+            const seen = loadJSON('fmeSeen', {});
+            const keep = pending.filter((t, i) => { if (chosen.has(i)) { seen[t.msgId] = 'discarded'; return false; } return true; });
+            saveJSON('fmeSeen', seen); saveJSON('fmePending', keep);
+            renderReview();
         }
 
         // ---------- rendering ----------
@@ -897,6 +1095,7 @@
                     const inBase = e.currency !== BASE && toBase(e.amount, e.currency) !== null
                         ? '<div class="note" style="margin:2px 0 0;">≈ ' + fmt(toBase(e.amount, e.currency), BASE) + '</div>' : '';
                     return '<tr><td>' + esc(e.date) + '</td><td>' + (esc(e.note) || '<span class="note">—</span>') +
+                        (e.source === 'gmail' ? ' <span class="cat-pill" style="background:#ECFDF5;color:#059669;">Gmail</span>' : '') +
                         '</td><td><span class="cat-pill">' + esc(e.category) + '</span></td><td>' + (esc(e.payment) || '—') +
                         '</td><td class="amt">' + fmt(e.amount, e.currency) + inBase + '</td>' +
                         (withDelete ? '<td><button class="btn-ghost" onclick="deleteExpense(\'' + e.id + '\')">Delete</button></td>' : '') + '</tr>';
@@ -958,6 +1157,7 @@
             document.querySelectorAll('.nav-menu button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
             const titles = { dashboard: 'Dashboard', add: 'Add Expense', expenses: 'All Expenses', sync: 'Auto Sync', analytics: 'Analytics' };
             document.getElementById('pageTitle').textContent = titles[page];
+            if (page === 'sync') renderSyncStatus();
             if (page === 'add' && !document.getElementById('fDate').value) {
                 document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
             }
@@ -974,9 +1174,16 @@
                 document.getElementById('landing').classList.add('hide');
                 document.getElementById('dashboard').classList.add('show');
                 showUser(auth.user);
-                showPage('dashboard');
-                renderAll();
+                document.getElementById('fCategory').innerHTML = catOptions('Food & Dining');
+                const after = sessionStorage.getItem('afterLogin');
+                sessionStorage.removeItem('afterLogin');
+                showPage(after === 'sync' ? 'sync' : 'dashboard');
+                renderAll(); renderSyncStatus(); renderReview();
                 fetchRates();
+                if (after === 'sync' && hasGmail()) {
+                    const d = sessionStorage.getItem('syncDays'); if (d) document.getElementById('syncDays').value = d;
+                    runSync();
+                }
             } else {
                 document.getElementById('landing').classList.remove('hide');
                 document.getElementById('dashboard').classList.remove('show');
