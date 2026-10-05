@@ -46,26 +46,19 @@
             padding: 20px 60px;
             background: white;
             border-bottom: 1px solid var(--border);
-            gap: 40px;
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 0;
             text-decoration: none;
             color: var(--text);
         }
 
         .logo img {
-            height: 48px;
-            width: 48px;
-        }
-
-        .logo-text {
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            height: 64px;
+            width: 64px;
         }
 
         .nav-buttons {
@@ -112,65 +105,82 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 60px 40px;
+            padding: 80px 40px;
             text-align: center;
         }
 
-        .hero img {
-            height: 220px;
+        .hero-image {
+            height: 280px;
             width: auto;
-            margin-bottom: 40px;
+            margin-bottom: 60px;
             max-width: 100%;
         }
 
         .hero h1 {
-            font-size: 56px;
+            font-size: 68px;
             font-weight: 800;
-            margin-bottom: 16px;
-            line-height: 1.2;
-            max-width: 900px;
+            margin-bottom: 24px;
+            line-height: 1.1;
+            max-width: 1000px;
+            letter-spacing: -1px;
         }
 
         .hero p {
             font-size: 18px;
             color: var(--text-light);
-            margin-bottom: 32px;
+            margin-bottom: 48px;
             max-width: 600px;
             line-height: 1.6;
         }
 
         .cta-button {
-            margin-bottom: 60px;
+            margin-bottom: 100px;
         }
 
-        .features {
-            display: flex;
-            justify-content: center;
-            gap: 100px;
-            flex-wrap: wrap;
-            padding-top: 60px;
-            border-top: 2px solid var(--border);
-            width: 100%;
-            max-width: 900px;
+        .cta-button .btn-signup {
+            padding: 14px 40px;
+            font-size: 16px;
+        }
+
+        /* FEATURES */
+        .features-section {
+            background: white;
+            padding: 60px 40px;
+            border-top: 1px solid var(--border);
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 60px;
         }
 
         .feature {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            text-align: center;
+            gap: 20px;
         }
 
         .feature img {
-            height: 70px;
-            width: 70px;
+            height: 100px;
+            width: 100px;
             object-fit: contain;
         }
 
         .feature-name {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             color: var(--text);
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.6;
         }
 
         /* MODALS */
@@ -443,11 +453,6 @@
         @media (max-width: 768px) {
             .nav {
                 padding: 16px 20px;
-                gap: 20px;
-            }
-
-            .logo-text {
-                display: none;
             }
 
             .hero {
@@ -455,11 +460,29 @@
             }
 
             .hero h1 {
-                font-size: 40px;
+                font-size: 48px;
             }
 
-            .features {
+            .hero-image {
+                height: 200px;
+                margin-bottom: 40px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .cta-button {
+                margin-bottom: 60px;
+            }
+
+            .features-container {
+                grid-template-columns: 1fr;
                 gap: 40px;
+            }
+
+            .features-section {
+                padding: 40px 20px;
             }
 
             .sidebar {
@@ -481,8 +504,7 @@
     <div class="landing" id="landing">
         <nav class="nav">
             <div class="logo">
-                <img src="https://ik.imagekit.io/credproject/FME%20logo?updatedAt=1791181787599" alt="FME">
-                <span class="logo-text">Find My Expense</span>
+                <img src="https://ik.imagekit.io/credproject/FME%20logo?updatedAt=1791181787599" alt="Find My Expense">
             </div>
             <div class="nav-buttons">
                 <button class="btn btn-login" onclick="openModal('login')">Login</button>
@@ -491,24 +513,30 @@
         </nav>
 
         <div class="hero">
-            <img src="https://ik.imagekit.io/credproject/image.png" alt="Expenses">
+            <img class="hero-image" src="https://ik.imagekit.io/credproject/image.png" alt="Expenses">
             <h1>Find Your Expenses, Master Your Money</h1>
             <p>Smart expense tracking with Gmail integration</p>
             <div class="cta-button">
                 <button class="btn btn-signup" onclick="openModal('signup')">Get Started Free</button>
             </div>
-            <div class="features">
+        </div>
+
+        <div class="features-section">
+            <div class="features-container">
                 <div class="feature">
-                    <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Gmail">
+                    <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Auto Sync">
                     <div class="feature-name">Auto Sync</div>
+                    <p class="feature-desc">Connect Gmail and automatically sync your transactions</p>
                 </div>
                 <div class="feature">
-                    <img src="https://ik.imagekit.io/credproject/Multi%20currency%20Logo" alt="Currency">
+                    <img src="https://ik.imagekit.io/credproject/Multi%20currency%20Logo" alt="Multi-Currency">
                     <div class="feature-name">Multi-Currency</div>
+                    <p class="feature-desc">Track expenses in any currency with real-time rates</p>
                 </div>
                 <div class="feature">
                     <img src="https://ik.imagekit.io/credproject/Analytics%20logo" alt="Analytics">
                     <div class="feature-name">Analytics</div>
+                    <p class="feature-desc">Visualize spending patterns and manage your budget</p>
                 </div>
             </div>
         </div>
