@@ -25,6 +25,9 @@ app.get('/health', (req, res) => {
 // API endpoint to get Google Client ID (to avoid hardcoding in frontend)
 app.get('/api/config', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
+  console.log('📋 /api/config called');
+  console.log('   GOOGLE_CLIENT_ID env var:', process.env.GOOGLE_CLIENT_ID ? '✅ SET' : '❌ NOT SET');
+  console.log('   Client ID being returned:', clientId);
   res.json({ 
     googleClientId: clientId,
     apiUrl: process.env.API_URL || 'http://localhost:3000'
