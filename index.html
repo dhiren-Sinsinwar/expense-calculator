@@ -2,144 +2,577 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#4F46E5">
-    <meta name="description" content="Track expenses with real-time currency conversion and Gmail integration">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Expense Calc">
-    <title>Expense Calculator</title>
-    <link rel="manifest" href="data:application/json,%7B%22name%22:%22Expense%20Calculator%22,%22short_name%22:%22ExpenseCalc%22,%22description%22:%22Track%20and%20analyze%20your%20expenses%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22scope%22:%22/%22,%22theme_color%22:%22%234F46E5%22,%22background_color%22:%22%23ffffff%22,%22icons%22:%5B%7B%22src%22:%22data:image/svg%2Bxml,%253Csvg%2520xmlns=%2527http://www.w3.org/2000/svg%2527%2520viewBox=%25270%25200%2520192%2520192%2527%253E%253Crect%2520width=%2527192%2527%2520height=%2527192%2527%2520fill=%2527%25234F46E5%2527/%253E%253Ctext%2520x=%252796%2527%2520y=%2527140%2527%2520font-size=%2527120%2527%2520font-weight=%2527bold%2527%2520fill=%2527%2523fff%2527%2520text-anchor=%2527middle%2527%253E%2524%253C/text%253E%253C/svg%253E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg%2Bxml%22,%22purpose%22:%22any%22%7D%5D%7D">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find My Expense - Smart Expense Tracker</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --primary: #4F46E5; --primary-light: #6366F1; --secondary: #10B981; --danger: #EF4444; --warning: #F59E0B; --bg: #FFFFFF; --surface: #F9FAFB; --border: #E5E7EB; --text: #111827; --text-light: #6B7280; --shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--surface); color: var(--text); }
-        body { padding-bottom: env(safe-area-inset-bottom, 0px); padding-top: env(safe-area-inset-top, 0px); }
-        .container { display: flex; flex-direction: column; height: 100vh; max-width: 1200px; margin: 0 auto; background: var(--bg); }
-        .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; padding: 20px; padding-top: max(20px, env(safe-area-inset-top, 0px)); box-shadow: var(--shadow); text-align: center; }
-        .header h1 { font-size: 28px; margin-bottom: 5px; }
-        .header p { font-size: 14px; opacity: 0.9; }
-        .nav-tabs { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; background: white; -webkit-overflow-scrolling: touch; }
-        .nav-tabs button { flex: 1; padding: 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-light); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; white-space: nowrap; }
-        .nav-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .nav-tabs button:hover { color: var(--primary); }
-        .content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)); }
-        .page { display: none; animation: fadeIn 0.3s ease; }
-        .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        :root {
+            --primary: #6366F1;
+            --primary-dark: #4F46E5;
+            --primary-light: #818CF8;
+            --accent: #10B981;
+            --danger: #EF4444;
+            --bg-dark: #0F172A;
+            --bg-light: #F8FAFC;
+            --surface: #FFFFFF;
+            --border: #E2E8F0;
+            --text: #0F172A;
+            --text-light: #64748B;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-light);
+            color: var(--text);
+        }
+
+        /* Landing */
+        .landing {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .landing.hide { display: none; }
+
+        .nav {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #818CF8, #10B981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .nav-buttons { display: flex; gap: 15px; }
+
+        .btn { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+
+        .btn-login { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); }
+        .btn-login:hover { border-color: white; background: rgba(255,255,255,0.1); }
+
+        .btn-signup { background: linear-gradient(135deg, #818CF8, #6366F1); color: white; }
+        .btn-signup:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.3); }
+
+        .hero {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .hero-title { font-size: 52px; font-weight: 800; margin-bottom: 20px; }
+        .hero-subtitle { font-size: 20px; color: rgba(255,255,255,0.8); margin-bottom: 40px; }
+
+        .hero-emoji { font-size: 80px; display: block; margin-bottom: 20px; }
+
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 40px;
+            margin-top: 60px;
+            padding-top: 60px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature { text-align: center; }
+        .feature-icon { font-size: 40px; margin-bottom: 10px; }
+        .feature-name { font-size: 14px; font-weight: 600; }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 100%;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; }
+
+        .modal-title { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+        .modal-subtitle { color: var(--text-light); margin-bottom: 30px; font-size: 14px; }
+
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); font-size: 14px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-family: inherit; background: white; color: var(--text); }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-        .form-group textarea { resize: vertical; min-height: 80px; }
-        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: inline-block; text-align: center; width: 100%; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: var(--shadow); }
-        .card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-title { font-size: 16px; font-weight: 600; color: var(--text); }
-        .card-amount { font-size: 20px; font-weight: 700; color: var(--primary); margin-top: 8px; }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
-        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
-        .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: var(--surface); padding: 16px; border-radius: 12px; text-align: center; }
-        .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
-        .stat-label { font-size: 12px; color: var(--text-light); margin-top: 4px; text-transform: uppercase; }
-        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
-        .alert-info { background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); }
-        .alert-success { background: rgba(16, 185, 129, 0.1); color: var(--secondary); border: 1px solid rgba(16, 185, 129, 0.3); }
-        @media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr; } .header h1 { font-size: 24px; } .nav-tabs button { font-size: 13px; padding: 12px; } .content { padding: 16px; } }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+        .form-group input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #818CF8, #6366F1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.3); }
+
+        .toggle-auth { text-align: center; margin-top: 20px; font-size: 14px; color: var(--text-light); }
+        .toggle-auth button { background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+            flex-height: 100vh;
+        }
+
+        .dashboard.show {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--bg-dark);
+            color: white;
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo { font-size: 20px; font-weight: 800; margin-bottom: 40px; background: linear-gradient(135deg, #818CF8, #10B981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .sidebar-nav { display: flex; flex-direction: column; gap: 15px; }
+
+        .nav-item {
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: rgba(255,255,255,0.7);
+            text-align: left;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .nav-item:hover, .nav-item.active { background: rgba(129, 140, 248, 0.2); color: white; }
+
+        .user-section { position: absolute; bottom: 20px; left: 20px; right: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .user-email { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 10px; }
+        .btn-logout { width: 100%; padding: 10px; background: rgba(239, 68, 68, 0.1); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-header {
+            background: white;
+            padding: 30px 40px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dashboard-header h1 { font-size: 28px; margin-bottom: 5px; }
+        .dashboard-header p { color: var(--text-light); font-size: 14px; }
+
+        .page {
+            padding: 40px;
+            display: none;
+        }
+
+        .page.active { display: block; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-label { font-size: 12px; color: var(--text-light); text-transform: uppercase; margin-bottom: 8px; }
+        .stat-value { font-size: 32px; font-weight: 700; color: var(--primary); }
+
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            max-width: 600px;
+        }
+
+        .form-card h3 { margin-bottom: 24px; font-size: 20px; }
+
+        .form-card select { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; }
+        .form-card textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; resize: vertical; min-height: 80px; }
+
+        .expense-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .expense-item {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expense-info h4 { margin-bottom: 4px; font-size: 14px; }
+        .expense-info p { font-size: 12px; color: var(--text-light); }
+
+        .expense-amount { font-size: 18px; font-weight: 700; color: var(--primary); }
+
+        .empty { text-align: center; padding: 40px; color: var(--text-light); }
+        .empty-icon { font-size: 64px; margin-bottom: 20px; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; padding: 20px; }
+            .main { width: 100%; }
+            .hero-title { font-size: 36px; }
+            .features { grid-template-columns: 1fr; gap: 20px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .nav { padding: 15px 20px; }
+            .hero { padding: 40px 20px; }
+            .dashboard-header { padding: 20px; }
+            .page { padding: 20px; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>💰 Expense Calculator</h1>
-            <p>Track and manage your expenses</p>
+    <!-- Landing Page -->
+    <div class="landing" id="landing">
+        <div class="nav">
+            <div class="logo">💰 Find My Expense</div>
+            <div class="nav-buttons">
+                <button class="btn btn-login" onclick="showModal('login')">Login</button>
+                <button class="btn btn-signup" onclick="showModal('signup')">Sign Up</button>
+            </div>
         </div>
-        <div class="nav-tabs">
-            <button class="tab-btn active" data-tab="add-expense">Add Expense</button>
-            <button class="tab-btn" data-tab="manual">Manual</button>
-            <button class="tab-btn" data-tab="gmail">Gmail</button>
-            <button class="tab-btn" data-tab="summary">Summary</button>
-        </div>
-        <div class="content">
-            <div class="page active" id="add-expense">
-                <form id="expenseForm">
-                    <div class="form-group">
-                        <label>Currency</label>
-                        <select id="currency" required>
-                            <option value="INR">₹ Indian Rupee</option>
-                            <option value="USD">$ US Dollar</option>
-                            <option value="EUR">€ Euro</option>
-                        </select>
+        <div class="hero">
+            <div>
+                <span class="hero-emoji">💸</span>
+                <h1 class="hero-title">Find Your Expenses, Master Your Money</h1>
+                <p class="hero-subtitle">Smart expense tracking with Gmail integration</p>
+                <button class="btn btn-signup" onclick="showModal('signup')">Get Started Free</button>
+                <div class="features">
+                    <div class="feature">
+                        <div class="feature-icon">📧</div>
+                        <div class="feature-name">Gmail Sync</div>
                     </div>
-                    <div class="form-group">
-                        <label>Amount</label>
-                        <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+                    <div class="feature">
+                        <div class="feature-icon">💱</div>
+                        <div class="feature-name">Multi-Currency</div>
                     </div>
-                    <div class="form-group">
-                        <label>Details</label>
-                        <textarea id="details" placeholder="What was this expense for?" required></textarea>
+                    <div class="feature">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-name">Analytics</div>
                     </div>
-                    <div class="form-group">
-                        <label>Date & Time</label>
-                        <input type="datetime-local" id="datetime" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Add Expense</button>
-                </form>
-            </div>
-            <div class="page" id="manual">
-                <div id="manualStats" class="stats-grid"></div>
-                <div id="manualList"></div>
-            </div>
-            <div class="page" id="gmail">
-                <div class="alert alert-info">Gmail sync - coming soon with OAuth setup</div>
-                <div id="emailList"></div>
-            </div>
-            <div class="page" id="summary">
-                <div id="summaryStats" class="stats-grid"></div>
-                <div id="combinedList"></div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Auth Modals -->
+    <div class="modal" id="signupModal">
+        <div class="modal-card">
+            <button class="close" onclick="closeModal()">✕</button>
+            <div class="modal-title">Create Account</div>
+            <p class="modal-subtitle">Join thousands tracking expenses</p>
+            <form onsubmit="signup(event)">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="signupName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" required>
+                </div>
+                <button type="submit" class="btn-submit">Sign Up</button>
+            </form>
+            <div class="toggle-auth">Have an account? <button onclick="switchModal('login')">Login</button></div>
+        </div>
+    </div>
+
+    <div class="modal" id="loginModal">
+        <div class="modal-card">
+            <button class="close" onclick="closeModal()">✕</button>
+            <div class="modal-title">Welcome Back</div>
+            <p class="modal-subtitle">Login to your account</p>
+            <form onsubmit="login(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn-submit">Login</button>
+            </form>
+            <div class="toggle-auth">No account? <button onclick="switchModal('signup')">Sign Up</button></div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-logo">💰 Find My Expense</div>
+            <div class="sidebar-nav">
+                <button class="nav-item active" onclick="switchPage('dashboard')">📊 Dashboard</button>
+                <button class="nav-item" onclick="switchPage('add')">➕ Add Expense</button>
+                <button class="nav-item" onclick="switchPage('expenses')">📝 Expenses</button>
+                <button class="nav-item" onclick="switchPage('gmail')">📧 Gmail Sync</button>
+                <button class="nav-item" onclick="switchPage('analytics')">📈 Analytics</button>
+            </div>
+            <div class="user-section">
+                <div class="user-email" id="userEmail"></div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="dashboard-header">
+                <h1 id="pageTitle">Dashboard</h1>
+                <p id="pageSubtitle">Welcome back</p>
+            </div>
+
+            <!-- Dashboard -->
+            <div class="page active" id="page-dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Spent</div>
+                        <div class="stat-value" id="totalSpent">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Transactions</div>
+                        <div class="stat-value" id="totalCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Average</div>
+                        <div class="stat-value" id="avgAmount">₹0</div>
+                    </div>
+                </div>
+                <div style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #E2E8F0;">
+                    <h3 style="margin-bottom: 20px;">Recent Expenses</h3>
+                    <div id="recentList" class="expense-list">
+                        <div class="empty"><div class="empty-icon">📭</div><h3>No expenses</h3></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Expense -->
+            <div class="page" id="page-add">
+                <div class="form-card">
+                    <h3>Add New Expense</h3>
+                    <form onsubmit="addExpense(event)">
+                        <div class="form-group">
+                            <label>Currency</label>
+                            <select id="currency"><option value="INR">₹ Indian Rupee</option><option value="USD">$ US Dollar</option><option value="EUR">€ Euro</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount</label>
+                            <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="category"><option value="food">🍕 Food</option><option value="travel">✈️ Travel</option><option value="shopping">🛍️ Shopping</option><option value="health">🏥 Health</option><option value="other">📌 Other</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Details</label>
+                            <textarea id="details" placeholder="What was this for?" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Date & Time</label>
+                            <input type="datetime-local" id="datetime" required>
+                        </div>
+                        <button type="submit" class="btn-submit">Add Expense</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Expenses -->
+            <div class="page" id="page-expenses">
+                <div style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #E2E8F0;">
+                    <h3 style="margin-bottom: 20px;">All Expenses</h3>
+                    <div id="expensesList" class="expense-list">
+                        <div class="empty"><div class="empty-icon">📭</div><h3>No expenses</h3></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gmail -->
+            <div class="page" id="page-gmail">
+                <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">📧</div>
+                    <h3 style="margin-bottom: 10px;">Gmail Integration</h3>
+                    <p style="color: #64748B; margin-bottom: 30px;">Connect your Gmail to sync expenses</p>
+                    <button class="btn btn-signup">Connect Gmail</button>
+                </div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="page" id="page-analytics">
+                <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">📈</div>
+                    <h3 style="margin-bottom: 10px;">Analytics & Reports</h3>
+                    <p style="color: #64748B;">Detailed spending insights</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const state = { expenses: [] };
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const pages = document.querySelectorAll('.page');
-        
-        function switchTab(tabId) {
-            pages.forEach(p => p.classList.remove('active'));
-            tabBtns.forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        let user = null;
+        let expenses = [];
+
+        document.getElementById('datetime').valueAsDate = new Date();
+
+        function showModal(type) {
+            document.getElementById(type + 'Modal').classList.add('show');
         }
-        
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-        });
-        
-        document.getElementById('expenseForm').addEventListener('submit', (e) => {
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+        }
+
+        function switchModal(type) {
+            closeModal();
+            showModal(type);
+        }
+
+        function signup(e) {
             e.preventDefault();
-            const expense = {
-                id: Date.now(),
+            user = {
+                name: document.getElementById('signupName').value,
+                email: document.getElementById('signupEmail').value
+            };
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('expenses', JSON.stringify([]));
+            expenses = [];
+            closeModal();
+            showDashboard();
+        }
+
+        function login(e) {
+            e.preventDefault();
+            user = {
+                email: document.getElementById('loginEmail').value,
+                name: document.getElementById('loginEmail').value.split('@')[0]
+            };
+            localStorage.setItem('user', JSON.stringify(user));
+            const saved = localStorage.getItem('expenses');
+            expenses = saved ? JSON.parse(saved) : [];
+            closeModal();
+            showDashboard();
+        }
+
+        function logout() {
+            user = null;
+            localStorage.removeItem('user');
+            document.getElementById('landing').classList.remove('hide');
+            document.getElementById('dashboard').classList.remove('show');
+        }
+
+        function showDashboard() {
+            document.getElementById('landing').classList.add('hide');
+            document.getElementById('dashboard').classList.add('show');
+            document.getElementById('userEmail').textContent = user.email;
+            updateStats();
+        }
+
+        function switchPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const titles = {
+                'dashboard': 'Dashboard',
+                'add': 'Add Expense',
+                'expenses': 'My Expenses',
+                'gmail': 'Gmail Sync',
+                'analytics': 'Analytics'
+            };
+            document.getElementById('pageTitle').textContent = titles[page];
+        }
+
+        function addExpense(e) {
+            e.preventDefault();
+            expenses.push({
                 amount: parseFloat(document.getElementById('amount').value),
                 currency: document.getElementById('currency').value,
+                category: document.getElementById('category').value,
                 details: document.getElementById('details').value,
                 datetime: document.getElementById('datetime').value
-            };
-            state.expenses.push(expense);
-            localStorage.setItem('expenses', JSON.stringify(state.expenses));
+            });
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            document.getElementById('amount').value = '';
+            document.getElementById('details').value = '';
+            updateStats();
             alert('Expense added!');
-            e.target.reset();
-            document.getElementById('datetime').valueAsDate = new Date();
-        });
-        
-        document.getElementById('datetime').valueAsDate = new Date();
-        
-        // Load from localStorage
-        const saved = localStorage.getItem('expenses');
-        if (saved) state.expenses = JSON.parse(saved);
+        }
+
+        function updateStats() {
+            const total = expenses.reduce((s, e) => s + e.amount, 0);
+            const avg = expenses.length ? total / expenses.length : 0;
+
+            document.getElementById('totalSpent').textContent = '₹' + total.toFixed(0);
+            document.getElementById('totalCount').textContent = expenses.length;
+            document.getElementById('avgAmount').textContent = '₹' + avg.toFixed(0);
+
+            const recent = expenses.slice().reverse().slice(0, 5);
+            document.getElementById('recentList').innerHTML = recent.length ? recent.map(e => `<div class="expense-item"><div class="expense-info"><h4>${e.category} ${e.details}</h4><p>${new Date(e.datetime).toLocaleDateString()}</p></div><div class="expense-amount">${e.currency} ${e.amount}</div></div>`).join('') : '<div class="empty"><div class="empty-icon">📭</div><h3>No expenses</h3></div>';
+
+            document.getElementById('expensesList').innerHTML = expenses.length ? expenses.slice().reverse().map(e => `<div class="expense-item"><div class="expense-info"><h4>${e.category} ${e.details}</h4><p>${new Date(e.datetime).toLocaleDateString()}</p></div><div class="expense-amount">${e.currency} ${e.amount}</div></div>`).join('') : '<div class="empty"><div class="empty-icon">📭</div><h3>No expenses</h3></div>';
+        }
+
+        // Check if logged in
+        const saved = localStorage.getItem('user');
+        if (saved) {
+            user = JSON.parse(saved);
+            const savedExpenses = localStorage.getItem('expenses');
+            expenses = savedExpenses ? JSON.parse(savedExpenses) : [];
+            showDashboard();
+        }
     </script>
 </body>
 </html>
