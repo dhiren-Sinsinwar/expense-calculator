@@ -15,8 +15,8 @@
             --primary-light: #818CF8;
             --accent: #10B981;
             --danger: #EF4444;
-            --bg-dark: #0F172A;
-            --bg-light: #F8FAFC;
+            --bg-dark: #FFFFFF;
+            --bg-light: #F5F7FA;
             --surface: #FFFFFF;
             --border: #E2E8F0;
             --text: #0F172A;
@@ -30,11 +30,10 @@
             color: var(--text);
         }
 
-        /* Landing */
         .landing {
             min-height: 100vh;
-            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-            color: white;
+            background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%);
+            color: var(--text);
             display: flex;
             flex-direction: column;
         }
@@ -46,17 +45,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .logo { font-size: 24px; font-weight: 800; display: flex; align-items: center; }
-        .logo img { height: 40px; width: auto; }
+        .logo img { height: 60px; width: auto; }
 
         .nav-buttons { display: flex; gap: 15px; }
 
         .btn { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
 
-        .btn-login { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); }
-        .btn-login:hover { border-color: white; background: rgba(255,255,255,0.1); }
+        .btn-login { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-login:hover { background: rgba(99, 102, 241, 0.05); }
 
         .btn-signup { background: linear-gradient(135deg, #818CF8, #6366F1); color: white; }
         .btn-signup:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.3); }
@@ -70,10 +71,10 @@
             padding: 60px 40px;
         }
 
-        .hero-title { font-size: 52px; font-weight: 800; margin-bottom: 20px; }
-        .hero-subtitle { font-size: 20px; color: rgba(255,255,255,0.8); margin-bottom: 40px; }
+        .hero-title { font-size: 52px; font-weight: 800; margin-bottom: 20px; color: var(--text); }
+        .hero-subtitle { font-size: 20px; color: var(--text-light); margin-bottom: 40px; }
 
-        .hero-emoji { font-size: 80px; display: block; margin-bottom: 20px; }
+        .hero-image { height: 220px; width: auto; margin-bottom: 30px; display: block; }
 
         .features {
             display: grid;
@@ -81,18 +82,16 @@
             gap: 40px;
             margin-top: 60px;
             padding-top: 60px;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid var(--border);
             max-width: 800px;
             margin-left: auto;
             margin-right: auto;
         }
 
         .feature { text-align: center; }
-        .feature-icon { font-size: 40px; margin-bottom: 10px; }
-        .feature-logo { height: 40px; width: auto; margin: 0 auto 10px; }
-        .feature-name { font-size: 14px; font-weight: 600; }
+        .feature-logo { height: 50px; width: auto; margin: 0 auto 10px; }
+        .feature-name { font-size: 14px; font-weight: 600; color: var(--text); }
 
-        /* Modal */
         .modal {
             position: fixed;
             top: 0;
@@ -125,12 +124,12 @@
 
         .close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; }
 
-        .modal-title { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+        .modal-title { font-size: 28px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
         .modal-subtitle { color: var(--text-light); margin-bottom: 30px; font-size: 14px; }
 
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
-        .form-group input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text); }
+        .form-group input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: white; color: var(--text); }
         .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
 
         .btn-submit {
@@ -174,7 +173,6 @@
             color: #3730A3;
         }
 
-        /* Dashboard */
         .dashboard {
             display: none;
             flex-height: 100vh;
@@ -188,12 +186,13 @@
         .sidebar {
             width: 280px;
             background: var(--bg-dark);
-            color: white;
+            color: var(--text);
             padding: 30px 20px 120px 20px;
             overflow-y: auto;
             position: relative;
             display: flex;
             flex-direction: column;
+            border-right: 1px solid var(--border);
         }
 
         .sidebar-logo { 
@@ -205,7 +204,7 @@
         }
 
         .sidebar-logo img {
-            height: 30px;
+            height: 50px;
             width: auto;
         }
 
@@ -222,29 +221,31 @@
             cursor: pointer;
             border: none;
             background: none;
-            color: rgba(255,255,255,0.7);
+            color: var(--text-light);
             text-align: left;
             font-weight: 500;
             transition: all 0.3s;
         }
 
-        .nav-item:hover, .nav-item.active { background: rgba(129, 140, 248, 0.2); color: white; }
+        .nav-item:hover, .nav-item.active { background: #F0F4F8; color: var(--primary); }
 
         .user-section { 
             margin-top: auto;
             padding-top: 20px; 
-            border-top: 1px solid rgba(255,255,255,0.1); 
+            border-top: 1px solid var(--border); 
         }
         
-        .user-email { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 10px; word-break: break-all; }
-        .user-name { font-size: 14px; color: white; margin-bottom: 10px; font-weight: 600; }
-        .btn-logout { width: 100%; padding: 10px; background: rgba(239, 68, 68, 0.1); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .user-email { font-size: 12px; color: var(--text-light); margin-bottom: 10px; word-break: break-all; }
+        .user-name { font-size: 14px; color: var(--text); margin-bottom: 10px; font-weight: 600; }
+        .btn-logout { width: 100%; padding: 10px; background: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .btn-logout:hover { background: #FCA5A5; }
 
         .main {
             flex: 1;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            background: white;
         }
 
         .dashboard-header {
@@ -253,7 +254,7 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .dashboard-header h1 { font-size: 28px; margin-bottom: 5px; }
+        .dashboard-header h1 { font-size: 28px; margin-bottom: 5px; color: var(--text); }
         .dashboard-header p { color: var(--text-light); font-size: 14px; }
 
         .page {
@@ -276,6 +277,7 @@
             border-radius: 12px;
             border: 1px solid var(--border);
             text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .stat-label { font-size: 12px; color: var(--text-light); text-transform: uppercase; margin-bottom: 8px; }
@@ -287,12 +289,13 @@
             border-radius: 12px;
             border: 1px solid var(--border);
             max-width: 600px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        .form-card h3 { margin-bottom: 24px; font-size: 20px; }
+        .form-card h3 { margin-bottom: 24px; font-size: 20px; color: var(--text); }
 
-        .form-card select { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; }
-        .form-card textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; resize: vertical; min-height: 80px; }
+        .form-card select { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; background: white; color: var(--text); }
+        .form-card textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; resize: vertical; min-height: 80px; background: white; color: var(--text); }
 
         .expense-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -306,15 +309,13 @@
             align-items: center;
         }
 
-        .expense-info h4 { margin-bottom: 4px; font-size: 14px; }
+        .expense-info h4 { margin-bottom: 4px; font-size: 14px; color: var(--text); }
         .expense-info p { font-size: 12px; color: var(--text-light); }
 
         .expense-amount { font-size: 18px; font-weight: 700; color: var(--primary); }
 
         .empty { text-align: center; padding: 40px; color: var(--text-light); }
         .empty-icon { font-size: 64px; margin-bottom: 20px; }
-        
-        .feature-logo-container { display: flex; justify-content: center; margin: 0 auto; }
 
         @media (max-width: 768px) {
             .sidebar { width: 100%; padding: 20px; }
@@ -323,6 +324,7 @@
             .features { grid-template-columns: 1fr; gap: 20px; }
             .stats-grid { grid-template-columns: 1fr; }
             .nav { padding: 15px 20px; }
+            .logo img { height: 40px; }
             .hero { padding: 40px 20px; }
             .dashboard-header { padding: 20px; }
             .page { padding: 20px; }
@@ -330,7 +332,6 @@
     </style>
 </head>
 <body>
-    <!-- Landing Page -->
     <div class="landing" id="landing">
         <div class="nav">
             <div class="logo">
@@ -343,27 +344,21 @@
         </div>
         <div class="hero">
             <div>
-                <span class="hero-emoji">💸</span>
+                <img src="https://ik.imagekit.io/credproject/image.png" alt="Find Your Expenses" class="hero-image">
                 <h1 class="hero-title">Find Your Expenses, Master Your Money</h1>
                 <p class="hero-subtitle">Smart expense tracking with Gmail integration</p>
                 <button class="btn btn-signup" onclick="showModal('signup')">Get Started Free</button>
                 <div class="features">
                     <div class="feature">
-                        <div class="feature-logo-container">
-                            <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Gmail" class="feature-logo">
-                        </div>
+                        <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Gmail" class="feature-logo">
                         <div class="feature-name">Auto Sync</div>
                     </div>
                     <div class="feature">
-                        <div class="feature-logo-container">
-                            <img src="https://ik.imagekit.io/credproject/Multi%20currency%20Logo" alt="Multi-Currency" class="feature-logo">
-                        </div>
+                        <img src="https://ik.imagekit.io/credproject/Multi%20currency%20Logo" alt="Multi-Currency" class="feature-logo">
                         <div class="feature-name">Multi-Currency</div>
                     </div>
                     <div class="feature">
-                        <div class="feature-logo-container">
-                            <img src="https://ik.imagekit.io/credproject/Analytics%20logo" alt="Analytics" class="feature-logo">
-                        </div>
+                        <img src="https://ik.imagekit.io/credproject/Analytics%20logo" alt="Analytics" class="feature-logo">
                         <div class="feature-name">Analytics</div>
                     </div>
                 </div>
@@ -371,21 +366,14 @@
         </div>
     </div>
 
-    <!-- Auth Modals -->
     <div class="modal" id="signupModal">
         <div class="modal-card">
             <button class="close" onclick="closeModal()">✕</button>
             <div class="modal-title">Create Account</div>
             <p class="modal-subtitle">Sign up with Google to get started</p>
-            
-            <div class="info-box">
-                🔐 We use Google Sign-In for secure authentication. No password needed.
-            </div>
-
+            <div class="info-box">🔐 We use Google Sign-In for secure authentication. No password needed.</div>
             <div id="googleSignup" class="google-signin"></div>
-
             <div class="divider"><span>Or continue with email</span></div>
-
             <div id="signupVerification" style="display: none;">
                 <div class="email-verify">
                     <h4>✓ Verification Email Sent</h4>
@@ -393,7 +381,6 @@
                     <p style="margin-top: 8px; font-size: 12px;">Check your inbox and click the link to verify your account.</p>
                 </div>
             </div>
-
             <form id="signupForm" onsubmit="signup(event)">
                 <div class="form-group">
                     <label>Full Name</label>
@@ -417,11 +404,8 @@
             <button class="close" onclick="closeModal()">✕</button>
             <div class="modal-title">Welcome Back</div>
             <p class="modal-subtitle">Login with your Google account</p>
-            
             <div id="googleLogin" class="google-signin"></div>
-
             <div class="divider"><span>Or login with email</span></div>
-
             <form onsubmit="login(event)">
                 <div class="form-group">
                     <label>Email</label>
@@ -436,7 +420,6 @@
         </div>
     </div>
 
-    <!-- Dashboard -->
     <div class="dashboard" id="dashboard">
         <div class="sidebar">
             <div class="sidebar-logo">
@@ -462,7 +445,6 @@
                 <p id="pageSubtitle">Welcome back</p>
             </div>
 
-            <!-- Dashboard -->
             <div class="page active" id="page-dashboard">
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -486,7 +468,6 @@
                 </div>
             </div>
 
-            <!-- Add Expense -->
             <div class="page" id="page-add">
                 <div class="form-card">
                     <h3>Add New Expense</h3>
@@ -516,7 +497,6 @@
                 </div>
             </div>
 
-            <!-- Expenses -->
             <div class="page" id="page-expenses">
                 <div style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #E2E8F0;">
                     <h3 style="margin-bottom: 20px;">All Expenses</h3>
@@ -526,25 +506,19 @@
                 </div>
             </div>
 
-            <!-- Auto Sync Transactions -->
             <div class="page" id="page-autosync">
                 <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
-                    <div style="margin-bottom: 20px;">
-                        <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Gmail" style="height: 80px; width: auto;">
-                    </div>
-                    <h3 style="margin-bottom: 10px;">Auto Sync Transactions</h3>
+                    <img src="https://ik.imagekit.io/credproject/Gmail%20Logo" alt="Gmail" style="height: 100px; width: auto; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 10px; color: #0F172A;">Auto Sync Transactions</h3>
                     <p style="color: #64748B; margin-bottom: 30px;">Connect your Gmail to automatically sync expenses from emails</p>
                     <button class="btn btn-signup">Connect Gmail</button>
                 </div>
             </div>
 
-            <!-- Analytics -->
             <div class="page" id="page-analytics">
                 <div style="background: white; padding: 40px; border-radius: 12px; text-align: center;">
-                    <div style="margin-bottom: 20px;">
-                        <img src="https://ik.imagekit.io/credproject/Analytics%20logo" alt="Analytics" style="height: 80px; width: auto;">
-                    </div>
-                    <h3 style="margin-bottom: 10px;">Analytics & Reports</h3>
+                    <img src="https://ik.imagekit.io/credproject/Analytics%20logo" alt="Analytics" style="height: 100px; width: auto; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 10px; color: #0F172A;">Analytics & Reports</h3>
                     <p style="color: #64748B;">Detailed spending insights coming soon</p>
                 </div>
             </div>
@@ -554,50 +528,23 @@
     <script>
         let user = null;
         let expenses = [];
-
         document.getElementById('datetime').valueAsDate = new Date();
-
-        // Initialize Google Sign-In (replace with your Google Client ID)
-        const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE'; // ← Set this in Google Cloud Console
+        const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE';
 
         function initGoogleSignIn() {
             if (window.google) {
-                // Signup button
-                google.accounts.id.renderButton(
-                    document.getElementById('googleSignup'),
-                    { theme: 'outline', size: 'large', width: '100%', text: 'signup_with' }
-                );
-
-                // Login button
-                google.accounts.id.renderButton(
-                    document.getElementById('googleLogin'),
-                    { theme: 'outline', size: 'large', width: '100%' }
-                );
-
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: handleGoogleSignIn
-                });
+                google.accounts.id.renderButton(document.getElementById('googleSignup'), { theme: 'outline', size: 'large', width: '100%', text: 'signup_with' });
+                google.accounts.id.renderButton(document.getElementById('googleLogin'), { theme: 'outline', size: 'large', width: '100%' });
+                google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleSignIn });
             }
         }
 
         function handleGoogleSignIn(response) {
-            // This would send to backend to verify JWT
-            console.log('Google Sign-In token:', response.credential);
-            
-            // For demo: extract basic info (in production, verify on backend)
             const token = response.credential;
             const base64Url = token.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
             const payload = JSON.parse(atob(base64));
-
-            user = {
-                email: payload.email,
-                name: payload.name,
-                picture: payload.picture,
-                verified: true
-            };
-
+            user = { email: payload.email, name: payload.name, picture: payload.picture, verified: true };
             localStorage.setItem('user', JSON.stringify(user));
             localStorage.setItem('expenses', JSON.stringify([]));
             expenses = [];
@@ -614,34 +561,18 @@
             document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
         }
 
-        function switchModal(type) {
-            closeModal();
-            showModal(type);
-        }
-
         function signup(e) {
             e.preventDefault();
             const email = document.getElementById('signupEmail').value;
-            const name = document.getElementById('signupName').value;
-            
-            // Show verification message
             document.getElementById('signupForm').style.display = 'none';
             document.getElementById('signupVerification').style.display = 'block';
             document.getElementById('verificationEmail').textContent = email;
-
-            // In production, send verification email via backend
-            console.log('Verification email sent to:', email);
         }
 
         function login(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
-            
-            user = {
-                email: email,
-                name: email.split('@')[0],
-                verified: true
-            };
+            user = { email: email, name: email.split('@')[0], verified: true };
             localStorage.setItem('user', JSON.stringify(user));
             const saved = localStorage.getItem('expenses');
             expenses = saved ? JSON.parse(saved) : [];
@@ -669,14 +600,7 @@
             document.getElementById('page-' + page).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             event.target.classList.add('active');
-
-            const titles = {
-                'dashboard': 'Dashboard',
-                'add': 'Add Expense',
-                'expenses': 'My Expenses',
-                'autosync': 'Auto Sync Transactions',
-                'analytics': 'Analytics'
-            };
+            const titles = { 'dashboard': 'Dashboard', 'add': 'Add Expense', 'expenses': 'My Expenses', 'autosync': 'Auto Sync Transactions', 'analytics': 'Analytics' };
             document.getElementById('pageTitle').textContent = titles[page];
         }
 
@@ -690,8 +614,6 @@
                 datetime: document.getElementById('datetime').value
             });
             localStorage.setItem('expenses', JSON.stringify(expenses));
-            document.getElementById('amount').value = '';
-            document.getElementById('details').value = '';
             updateStats();
             alert('Expense added!');
         }
@@ -699,18 +621,14 @@
         function updateStats() {
             const total = expenses.reduce((s, e) => s + e.amount, 0);
             const avg = expenses.length ? total / expenses.length : 0;
-
             document.getElementById('totalSpent').textContent = '₹' + total.toFixed(0);
             document.getElementById('totalCount').textContent = expenses.length;
             document.getElementById('avgAmount').textContent = '₹' + avg.toFixed(0);
-
             const recent = expenses.slice().reverse().slice(0, 5);
             document.getElementById('recentList').innerHTML = recent.length ? recent.map(e => `<div class="expense-item"><div class="expense-info"><h4>${e.category} ${e.details}</h4><p>${new Date(e.datetime).toLocaleDateString()}</p></div><div class="expense-amount">${e.currency} ${e.amount}</div></div>`).join('') : '<div class="empty"><div class="empty-icon">📭</div><h3>No expenses</h3></div>';
-
             document.getElementById('expensesList').innerHTML = expenses.length ? expenses.slice().reverse().map(e => `<div class="expense-item"><div class="expense-info"><h4>${e.category} ${e.details}</h4><p>${new Date(e.datetime).toLocaleDateString()}</p></div><div class="expense-amount">${e.currency} ${e.amount}</div></div>`).join('') : '<div class="empty"><div class="empty-icon">📭</div><h3>No expenses</h3></div>';
         }
 
-        // Check if logged in
         const saved = localStorage.getItem('user');
         if (saved) {
             user = JSON.parse(saved);
@@ -719,7 +637,6 @@
             showDashboard();
         }
 
-        // Initialize Google Sign-In when page loads
         window.addEventListener('load', initGoogleSignIn);
     </script>
 </body>
