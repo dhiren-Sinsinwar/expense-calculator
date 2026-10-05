@@ -232,6 +232,19 @@ app.get('/api/me', (req, res) => {
   res.json({ user: publicUser(u) });
 });
 
+app.patch('/api/me', (req, res) => {
+  const u = authUser(req);
+  if (!u) return res.status(401).json({ error: 'Not logged in' });
+  const name = String((req.body && req.body.name) || '').trim().slice(0, 80);
+  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (name.length < 2) return res.status(400).json({ error: 'Enter your name.' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  const other = findByEmail(email);
+  if (other && other.id !== u.id) return res.status(409).json({ error: 'This email is used by another account.' });
+  u.name = name; u.email = email; saveDb();
+  res.json({ user: publicUser(u) });
+});
+
 app.post('/api/me/password', (req, res) => {
   const u = authUser(req);
   if (!u) return res.status(401).json({ error: 'Not logged in' });
