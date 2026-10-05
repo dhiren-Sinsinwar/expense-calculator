@@ -709,7 +709,8 @@
 
         function googleSignup(clientId) {
             const redirectUri = window.location.origin + '/auth/callback';
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20https://www.googleapis.com/auth/gmail.readonly`;
+            const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly');
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}`;
             window.location.href = authUrl;
         }
 
@@ -723,7 +724,8 @@
 
         function googleLogin(clientId) {
             const redirectUri = window.location.origin + '/auth/callback';
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20https://www.googleapis.com/auth/gmail.readonly`;
+            const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly');
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}`;
             window.location.href = authUrl;
         }
 
