@@ -709,9 +709,8 @@
 
         function googleSignup(clientId) {
             const redirectUri = window.location.origin + '/auth/callback';
-            const scope = encodeURIComponent('email profile');
             const state = Math.random().toString(36).substring(7);
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&state=${state}`;
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email profile&access_type=offline&state=${state}`;
             window.location.href = authUrl;
         }
 
@@ -725,9 +724,8 @@
 
         function googleLogin(clientId) {
             const redirectUri = window.location.origin + '/auth/callback';
-            const scope = encodeURIComponent('email profile');
             const state = Math.random().toString(36).substring(7);
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&state=${state}`;
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email profile&access_type=offline&state=${state}`;
             window.location.href = authUrl;
         }
 
