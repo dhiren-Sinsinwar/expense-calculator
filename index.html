@@ -2,11 +2,144 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="description" content="Track expenses with real-time currency conversion and Gmail integration">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Expense Calc">
     <title>Expense Calculator</title>
+    <link rel="manifest" href="data:application/json,%7B%22name%22:%22Expense%20Calculator%22,%22short_name%22:%22ExpenseCalc%22,%22description%22:%22Track%20and%20analyze%20your%20expenses%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22scope%22:%22/%22,%22theme_color%22:%22%234F46E5%22,%22background_color%22:%22%23ffffff%22,%22icons%22:%5B%7B%22src%22:%22data:image/svg%2Bxml,%253Csvg%2520xmlns=%2527http://www.w3.org/2000/svg%2527%2520viewBox=%25270%25200%2520192%2520192%2527%253E%253Crect%2520width=%2527192%2527%2520height=%2527192%2527%2520fill=%2527%25234F46E5%2527/%253E%253Ctext%2520x=%252796%2527%2520y=%2527140%2527%2520font-size=%2527120%2527%2520font-weight=%2527bold%2527%2520fill=%2527%2523fff%2527%2520text-anchor=%2527middle%2527%253E%2524%253C/text%253E%253C/svg%253E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg%2Bxml%22,%22purpose%22:%22any%22%7D%5D%7D">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #4F46E5; --primary-light: #6366F1; --secondary: #10B981; --danger: #EF4444; --warning: #F59E0B; --bg: #FFFFFF; --surface: #F9FAFB; --border: #E5E7EB; --text: #111827; --text-light: #6B7280; --shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--surface); color: var(--text); }
+        body { padding-bottom: env(safe-area-inset-bottom, 0px); padding-top: env(safe-area-inset-top, 0px); }
+        .container { display: flex; flex-direction: column; height: 100vh; max-width: 1200px; margin: 0 auto; background: var(--bg); }
+        .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; padding: 20px; padding-top: max(20px, env(safe-area-inset-top, 0px)); box-shadow: var(--shadow); text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .nav-tabs { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; background: white; -webkit-overflow-scrolling: touch; }
+        .nav-tabs button { flex: 1; padding: 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-light); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; white-space: nowrap; }
+        .nav-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .nav-tabs button:hover { color: var(--primary); }
+        .content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)); }
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); font-size: 14px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-family: inherit; background: white; color: var(--text); }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: inline-block; text-align: center; width: 100%; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: var(--shadow); }
+        .card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-title { font-size: 16px; font-weight: 600; color: var(--text); }
+        .card-amount { font-size: 20px; font-weight: 700; color: var(--primary); margin-top: 8px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--surface); padding: 16px; border-radius: 12px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--text-light); margin-top: 4px; text-transform: uppercase; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+        .alert-info { background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); }
+        .alert-success { background: rgba(16, 185, 129, 0.1); color: var(--secondary); border: 1px solid rgba(16, 185, 129, 0.3); }
+        @media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr; } .header h1 { font-size: 24px; } .nav-tabs button { font-size: 13px; padding: 12px; } .content { padding: 16px; } }
+    </style>
 </head>
 <body>
-    <h1>Expense Calculator</h1>
-    <p>This is a placeholder. Download the full version from outputs.</p>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Expense Calculator</h1>
+            <p>Track and manage your expenses</p>
+        </div>
+        <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="add-expense">Add Expense</button>
+            <button class="tab-btn" data-tab="manual">Manual</button>
+            <button class="tab-btn" data-tab="gmail">Gmail</button>
+            <button class="tab-btn" data-tab="summary">Summary</button>
+        </div>
+        <div class="content">
+            <div class="page active" id="add-expense">
+                <form id="expenseForm">
+                    <div class="form-group">
+                        <label>Currency</label>
+                        <select id="currency" required>
+                            <option value="INR">₹ Indian Rupee</option>
+                            <option value="USD">$ US Dollar</option>
+                            <option value="EUR">€ Euro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Details</label>
+                        <textarea id="details" placeholder="What was this expense for?" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Date & Time</label>
+                        <input type="datetime-local" id="datetime" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </form>
+            </div>
+            <div class="page" id="manual">
+                <div id="manualStats" class="stats-grid"></div>
+                <div id="manualList"></div>
+            </div>
+            <div class="page" id="gmail">
+                <div class="alert alert-info">Gmail sync - coming soon with OAuth setup</div>
+                <div id="emailList"></div>
+            </div>
+            <div class="page" id="summary">
+                <div id="summaryStats" class="stats-grid"></div>
+                <div id="combinedList"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const state = { expenses: [] };
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const pages = document.querySelectorAll('.page');
+        
+        function switchTab(tabId) {
+            pages.forEach(p => p.classList.remove('active'));
+            tabBtns.forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        }
+        
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+        
+        document.getElementById('expenseForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const expense = {
+                id: Date.now(),
+                amount: parseFloat(document.getElementById('amount').value),
+                currency: document.getElementById('currency').value,
+                details: document.getElementById('details').value,
+                datetime: document.getElementById('datetime').value
+            };
+            state.expenses.push(expense);
+            localStorage.setItem('expenses', JSON.stringify(state.expenses));
+            alert('Expense added!');
+            e.target.reset();
+            document.getElementById('datetime').valueAsDate = new Date();
+        });
+        
+        document.getElementById('datetime').valueAsDate = new Date();
+        
+        // Load from localStorage
+        const saved = localStorage.getItem('expenses');
+        if (saved) state.expenses = JSON.parse(saved);
+    </script>
 </body>
 </html>
