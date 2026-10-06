@@ -406,6 +406,7 @@
             font-size: 15px; line-height: 1.45;
         }
         .app.show { display: flex; }
+        .app [hidden] { display: none !important; }
         .app .ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
         .app button { font-family: inherit; }
         .app :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
@@ -692,6 +693,34 @@
         .pay-line:hover { background: #F6F8F5; }
         .pay-line .nm span small { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 12px; }
         .pay-line.none .nm span { color: var(--muted); font-style: italic; }
+
+        /* ===== receipt scanning ===== */
+        .scan { border: 1.5px dashed #BFD6C6; background: #F6FAF7; border-radius: 14px; padding: 14px 16px; margin-bottom: 22px; }
+        .scan[hidden], .scan-idle[hidden], .scan-active[hidden] { display: none; }
+        .scan-idle { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+        .scan-text { display: flex; flex-direction: column; }
+        .scan-text strong { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+        .scan-text strong .ic { color: var(--brand); width: 17px; height: 17px; }
+        .scan-text span { font-size: 13px; color: var(--muted); }
+        .scan-btns { display: flex; gap: 8px; }
+        .scan-btns label { cursor: pointer; }
+        .scan-active { display: flex; align-items: center; gap: 14px; }
+        .scan-active img { width: 56px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; background: #fff; }
+        .scan-status { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .scan-status strong { font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+        .scan-status span { font-size: 13px; color: var(--muted); }
+        .scan.reading .scan-status strong::before { content: ''; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #BFD6C6; border-top-color: var(--brand); animation: spin .8s linear infinite; }
+        .scan.read { border-style: solid; border-color: #CFE3D5; background: var(--brand-soft); }
+        .scan.failed { border-style: solid; border-color: #F1D9B0; background: #FDF8EE; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .filled { animation: filled 1.6s ease-out; }
+        @keyframes filled { 0% { box-shadow: 0 0 0 3px #C4DA3A; } 100% { box-shadow: 0 0 0 3px transparent; } }
+        .receipt-view { max-width: 560px; padding: 16px !important; }
+        .receipt-view img { width: 100%; max-height: 80vh; object-fit: contain; border-radius: 8px; display: block; }
+        .row-clip { display: inline-flex; vertical-align: -2px; color: var(--muted); margin-left: 6px; }
+        .row-clip .ic { width: 13px; height: 13px; }
+        @media (max-width: 860px) { .scan-btns { width: 100%; } .scan-btns label { flex: 1; justify-content: center; } }
+        @media (prefers-reduced-motion: reduce) { .filled, .scan.reading .scan-status strong::before { animation: none; } }
     </style>
 </head>
 <body>
@@ -824,6 +853,13 @@
         </div>
     </div>
 
+    <div class="modal" id="receiptModal" onclick="if(event.target===this)closeModal()">
+        <div class="modal-content receipt-view">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <img id="receiptFull" alt="Receipt photo">
+        </div>
+    </div>
+
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
       <defs>
         <symbol id="i-home" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
@@ -848,6 +884,10 @@
         <symbol id="p-bank" viewBox="0 0 24 24"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l8 5H4l8-5Z"/></symbol>
         <symbol id="p-other" viewBox="0 0 24 24"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
         <symbol id="p-none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+        <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+        <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
+        <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z"/></symbol>
         <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
         <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
@@ -944,6 +984,20 @@
             <section class="view" id="page-add">
                 <div class="panel form-panel" id="addForm">
                     <div class="editing-note" id="editNote" hidden><svg class="ic"><use href="#i-edit"/></svg><span id="editNoteText"></span></div>
+                    <div class="scan" id="scanBox" hidden>
+                        <div class="scan-idle" id="scanIdle">
+                            <div class="scan-text"><strong><svg class="ic"><use href="#i-sparkle"/></svg>Scan a receipt</strong><span>Take a photo and we’ll fill in the details for you</span></div>
+                            <div class="scan-btns">
+                                <label class="btn btn-solid"><svg class="ic"><use href="#i-camera"/></svg>Take photo<input type="file" accept="image/*" capture="environment" onchange="pickReceipt(this)" hidden></label>
+                                <label class="btn btn-quiet"><svg class="ic"><use href="#i-image"/></svg>Choose photo<input type="file" accept="image/*" onchange="pickReceipt(this)" hidden></label>
+                            </div>
+                        </div>
+                        <div class="scan-active" id="scanActive" hidden>
+                            <img id="scanThumb" alt="Receipt" onclick="viewReceipt()">
+                            <div class="scan-status"><strong id="scanTitle"></strong><span id="scanSub"></span></div>
+                            <button class="ib-close" onclick="clearReceipt()" aria-label="Remove receipt" title="Remove receipt"><svg class="ic"><use href="#i-x"/></svg></button>
+                        </div>
+                    </div>
                     <label class="lbl" for="fAmount">Amount</label>
                     <div class="amount-field">
                         <select id="fCurrency" aria-label="Currency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select>
@@ -1419,6 +1473,7 @@
                 category: document.getElementById('fCategory').value,
                 payment: document.getElementById('fPayment').value.trim(),
                 note: document.getElementById('fNote').value.trim(),
+                receiptId: receiptId,
             };
         }
         function lastMethod() { try { return localStorage.getItem('fmeLastMethod') || 'UPI'; } catch { return 'UPI'; } }
@@ -1434,6 +1489,7 @@
             document.getElementById('addForm').hidden = false;
             document.getElementById('addDone').hidden = true;
             flash('formMsg', '');
+            clearReceipt();
         }
         function startNew() { resetForm(); showPage('add'); }
 
@@ -1453,6 +1509,7 @@
             const who = e.userId === (ME && ME.id) ? '' : ' added by ' + memberById(e.userId).name.split(' ')[0];
             document.getElementById('editNoteText').textContent = 'Editing an expense' + who + ' from ' + dayLabel(e.date);
             document.getElementById('editNote').hidden = false;
+            if (e.receiptId) showExistingReceipt(e.receiptId); else { clearReceipt(); }
             document.getElementById('pageTitle').textContent = 'Edit expense';
             document.getElementById('pageSubtitle').textContent = 'Change any detail, then save';
         }
@@ -1465,7 +1522,8 @@
             document.getElementById('doneSummary').innerHTML = catIcon(e.category) +
                 '<div><div class="row-title">' + (esc(e.note) || esc(e.category)) + '</div><div class="row-sub">' +
                 esc([e.category, dayLabel(e.date)].join(', ')) + (multi() && !edited ? ', shared with ' + esc(HH.household.name) : '') + '</div></div>' +
-                '<span class="amt">' + fmt(e.amount, e.currency) + '</span>';
+                '<span class="amt">' + fmt(e.amount, e.currency) + '</span>' +
+                (e.receiptId ? '<button class="row-edit" style="opacity:1" onclick="openReceipt(\'' + e.receiptId + '\')" aria-label="View receipt" title="View receipt"><svg class="ic"><use href="#i-clip"/></svg></button>' : '');
             document.getElementById('doneAsk').hidden = edited;
             document.getElementById('doneEdited').hidden = !edited;
             document.getElementById('pageTitle').textContent = edited ? 'Expense updated' : 'Expense submitted';
@@ -1520,6 +1578,92 @@
             a.click();
         }
 
+
+
+        // ---------- receipt scanning ----------
+        let RECEIPTS_ON = false, receiptId = null, receiptURL = null, scanSeq = 0;
+        fetch('/api/otp/status').then(r => r.json()).then(d => { RECEIPTS_ON = !!d.receipts; refreshScanBox(); }).catch(() => {});
+        function refreshScanBox() { document.getElementById('scanBox').hidden = !RECEIPTS_ON && !receiptId; }
+
+        // shrink on the phone: max 1600px, JPEG ~85% (keeps uploads small and scans cheap)
+        function shrinkImage(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file), img = new Image();
+                img.onload = () => {
+                    const max = 1600, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+                    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    resolve(c.toDataURL('image/jpeg', 0.85));
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('This photo format isn’t supported. Try a JPEG or PNG, or take the photo with the camera button.')); };
+                img.src = url;
+            });
+        }
+        function scanState(cls, title, sub) {
+            const box = document.getElementById('scanBox');
+            box.className = 'scan' + (cls ? ' ' + cls : '');
+            document.getElementById('scanIdle').hidden = !!cls;
+            document.getElementById('scanActive').hidden = !cls;
+            document.getElementById('scanTitle').textContent = title || '';
+            document.getElementById('scanSub').textContent = sub || '';
+        }
+        async function pickReceipt(input) {
+            const file = input.files && input.files[0]; input.value = '';
+            if (!file) return;
+            const seq = ++scanSeq;
+            let dataUrl;
+            try { dataUrl = await shrinkImage(file); } catch (e) { flash('formMsg', e.message, true); return; }
+            receiptId = null; setReceiptPreview(dataUrl);
+            scanState('reading', 'Reading your receipt…', 'This takes a few seconds');
+            try {
+                const d = await api('/api/receipts/scan', { image: dataUrl });
+                if (seq !== scanSeq) return;
+                receiptId = d.receiptId;
+                if (!d.found) return scanState('failed', 'Couldn’t find a total on this photo', 'The photo is attached. Fill in the details below, or try a clearer photo.');
+                applyScan(d.fields);
+                const missing = [!d.fields.amount && 'amount', !d.fields.date && 'date'].filter(Boolean);
+                scanState('read', 'Details filled in from your receipt', missing.length ? 'Couldn’t read the ' + missing.join(' or ') + '. Please add it, then check and submit.' : 'Check everything looks right, then submit.');
+            } catch (e) {
+                if (seq !== scanSeq) return;
+                receiptId = (e.data && e.data.receiptId) || null;
+                scanState('failed', receiptId ? 'Couldn’t read the receipt' : 'Upload failed', e.message);
+                if (!receiptId) setReceiptPreview(null);
+            }
+        }
+        function applyScan(f) {
+            const mark = id => { const el = document.getElementById(id); el.classList.remove('filled'); void el.offsetWidth; el.classList.add('filled'); };
+            if (f.amount) { document.getElementById('fAmount').value = f.amount; mark('fAmount'); }
+            if (f.currency) document.getElementById('fCurrency').value = f.currency;
+            if (f.date) { document.getElementById('fDate').value = f.date; mark('fDate'); }
+            if (f.category) { buildChips(f.category); mark('fCategoryChips'); }
+            if (f.payment) { document.getElementById('fPayment').value = f.payment; mark('fPayment'); }
+            if (f.note) { document.getElementById('fNote').value = f.note; mark('fNote'); }
+        }
+        function setReceiptPreview(src) {
+            if (receiptURL && receiptURL.startsWith('blob:')) URL.revokeObjectURL(receiptURL);
+            receiptURL = src;
+            document.getElementById('scanThumb').src = src || '';
+        }
+        function clearReceipt() {
+            scanSeq++; receiptId = null; setReceiptPreview(null); scanState('', '', ''); refreshScanBox();
+        }
+        async function receiptBlobURL(id) {
+            const r = await fetch('/api/receipts/' + id, { headers: { Authorization: 'Bearer ' + getAuth().token } });
+            if (!r.ok) throw new Error('Receipt not found');
+            return URL.createObjectURL(await r.blob());
+        }
+        async function showExistingReceipt(id) {      // when editing an expense that already has one
+            receiptId = id;
+            scanState('read', 'Receipt attached', 'Tap the photo to view it, or ✕ to remove it');
+            try { setReceiptPreview(await receiptBlobURL(id)); } catch (e) { scanState('failed', 'Receipt photo unavailable', ''); }
+        }
+        function viewReceipt(src) {
+            const u = src || receiptURL; if (!u) return;
+            document.getElementById('receiptFull').src = u; openModal('receipt');
+        }
+        async function openReceipt(id) { try { viewReceipt(await receiptBlobURL(id)); } catch (e) { alert('Couldn’t load the receipt photo.'); } }
 
         // ---------- payment methods ----------
         const PAY = {
@@ -1593,7 +1737,7 @@
                     const who = multi() && !scopeId() ? '<span class="who"><span class="mini-av" style="background:' + avColor(e.userId) + '">' + initials(memberById(e.userId).name) + '</span>' + esc(firstName(e.userId)) + '</span>' : '';
                     const can = canDelete(e);
                     return '<div class="row' + (withDelete ? '' : ' no-del') + (can ? ' editable" onclick="openEdit(\'' + e.id + '\')" title="Edit expense' : '') + '">' + catIcon(e.category) +
-                        '<div class="row-main"><div class="row-title">' + (esc(e.note) || esc(e.category)) + '</div><div class="row-sub">' + who + sub + '</div></div>' +
+                        '<div class="row-main"><div class="row-title">' + (esc(e.note) || esc(e.category)) + (e.receiptId ? '<span class="row-clip" title="Receipt attached"><svg class="ic"><use href="#i-clip"/></svg></span>' : '') + '</div><div class="row-sub">' + who + sub + '</div></div>' +
                         '<div class="row-amt' + (e.amount < 0 ? ' refund' : '') + '">' + fmt(e.amount, e.currency) + conv + '</div>' +
                         (withDelete ? (can ? '<div class="row-acts"><button class="row-edit" onclick="event.stopPropagation();openEdit(\'' + e.id + '\')" aria-label="Edit expense"><svg class="ic"><use href="#i-edit"/></svg></button>' +
                             '<button class="row-del" onclick="event.stopPropagation();deleteExpense(\'' + e.id + '\')" aria-label="Delete expense"><svg class="ic"><use href="#i-trash"/></svg></button></div>' : '<span></span>') : '') +

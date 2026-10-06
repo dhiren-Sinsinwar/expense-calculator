@@ -23,7 +23,8 @@ app.use((req, res, next) => {
 // Real visitor IP: Cloudflare puts it in CF-Connecting-IP (otherwise every visitor looks like a Cloudflare server)
 function clientIp(req) { return String(req.headers['cf-connecting-ip'] || req.ip || 'unknown'); }
 
-app.use(express.json());
+const jsonSmall = express.json(), jsonLarge = express.json({ limit: '8mb' });
+app.use((req, res, next) => (req.path === '/api/receipts/scan' ? jsonLarge : jsonSmall)(req, res, next));
 
 // PWA files: manifest, service worker, icons
 app.get('/sw.js', (req, res) => {
@@ -68,7 +69,7 @@ const PERSISTENT = DATA_DIR === '/data' || !!process.env.DATA_DIR;
 let db = { users: [], secret: null };
 try { db = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { /* first run */ }
 if (!db.secret) db.secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-db.users = db.users || []; db.households = db.households || []; db.expenses = db.expenses || []; db.invites = db.invites || [];
+db.users = db.users || []; db.households = db.households || []; db.expenses = db.expenses || []; db.invites = db.invites || []; db.receipts = db.receipts || [];
 function saveDb() {
   const tmp = USERS_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
@@ -152,7 +153,7 @@ setInterval(() => {               // housekeeping
   for (const [k, v] of ipSends) { const r = recent(v, 3600e3); r.length ? ipSends.set(k, r) : ipSends.delete(k); }
 }, 10 * 60 * 1000).unref();
 
-app.get('/api/otp/status', (req, res) => res.json({ testMode: TEST_MODE, persistent: PERSISTENT }));
+app.get('/api/otp/status', (req, res) => res.json({ testMode: TEST_MODE, persistent: PERSISTENT, receipts: !!process.env.ANTHROPIC_API_KEY }));
 
 app.post('/api/otp/send', async (req, res) => {
   const phone = normalizePhone(req.body && req.body.phone);
@@ -420,6 +421,111 @@ app.delete('/api/household/members/:id', (req, res) => {
   saveDb(); res.json(householdView(u));
 });
 
+
+// ================= RECEIPT SCANNING =================
+// Reads a receipt photo with Claude (vision) and returns the fields for the Add expense form.
+// Needs ANTHROPIC_API_KEY (flyctl secrets set ANTHROPIC_API_KEY=...). Photos are kept on the volume.
+const RECEIPT_DIR = path.join(DATA_DIR, 'receipts');
+fs.mkdirSync(RECEIPT_DIR, { recursive: true });
+const RECEIPT_MODEL = process.env.RECEIPT_MODEL || 'claude-haiku-4-5-20251001';
+const ANTHROPIC_URL = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com') + '/v1/messages';
+const CATEGORY_LIST = ['Food & Dining', 'Groceries', 'Travel', 'Transport', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health', 'Subscriptions', 'Loans & EMI', 'Transfers', 'Other'];
+const scanLog = new Map(); // userId -> [timestamps]
+const receiptPath = id => path.join(RECEIPT_DIR, id.replace(/[^a-f0-9-]/gi, '') + '.jpg');
+function dropReceipt(id) { if (!id) return; db.receipts = db.receipts.filter(r => r.id !== id); fs.unlink(receiptPath(id), () => {}); }
+function cleanupReceipts() {   // photos scanned but never saved with an expense
+  const cutoff = Date.now() - 24 * 3600e3;
+  db.receipts.filter(r => !r.expenseId && Date.parse(r.createdAt) < cutoff).forEach(r => dropReceipt(r.id));
+}
+setInterval(() => { cleanupReceipts(); saveDb(); }, 3600e3).unref();
+
+const RECEIPT_PROMPT = `You read photos of receipts, bills, invoices and payment screenshots (often Indian: GST bills, restaurant bills, fuel slips, UPI/app payment confirmations).
+Return ONLY a JSON object, no other text:
+{"is_receipt": true|false, "amount": number|null, "currency": "INR"|"USD"|"EUR"|"GBP"|"AED"|"SGD"|"THB"|"JPY"|null, "date": "YYYY-MM-DD"|null, "merchant": string|null, "category": one of ${JSON.stringify(CATEGORY_LIST)}, "payment": "Credit Card"|"Direct Bank Transfer"|"UPI"|"Cash"|"Other"|null, "description": string|null}
+Rules:
+- amount = the final total actually paid (grand total / net payable / amount paid, including taxes, after discounts). Never a subtotal, item price, GST line, change returned or "you saved".
+- currency: from the symbol or text; ₹ / Rs / INR -> "INR". If none is shown and it looks Indian, "INR".
+- date: the transaction date. Indian receipts are usually DD/MM/YY. If no date is visible, null.
+- merchant: the shop/restaurant/company name, cleaned up (e.g. "Starbucks", "Big Basket", "Indian Oil"). Max 40 characters.
+- payment: only if the receipt says how it was paid. Any card (credit or debit) -> "Credit Card"; UPI/GPay/PhonePe/Paytm UPI -> "UPI"; NEFT/IMPS/net banking -> "Direct Bank Transfer"; cash -> "Cash". Otherwise null.
+- description: 2–6 words saying what it was for, starting with the merchant, e.g. "Starbucks coffee", "Indian Oil petrol".
+- If the image is not a receipt or bill, or the total is unreadable, set is_receipt false and the rest null.`;
+
+app.post('/api/receipts/scan', async (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'Receipt scanning isn’t set up yet.' });
+  const recent1h = recent(scanLog.get(u.id), 3600e3);
+  if (recent1h.length >= 40) return res.status(429).json({ error: 'You’ve scanned a lot of receipts this hour. Try again a bit later.' });
+  const b64 = String((req.body && req.body.image) || '').replace(/^data:image\/\w+;base64,/, '');
+  const buf = Buffer.from(b64, 'base64');
+  if (buf.length < 500 || buf.length > 6 * 1024 * 1024 || buf[0] !== 0xFF || buf[1] !== 0xD8) return res.status(400).json({ error: 'Please upload a JPEG photo of the receipt.' });
+  recent1h.push(Date.now()); scanLog.set(u.id, recent1h);
+
+  const id = crypto.randomUUID();
+  fs.writeFileSync(receiptPath(id), buf);
+  db.receipts.push({ id, userId: u.id, householdId: u.householdId, expenseId: null, bytes: buf.length, createdAt: new Date().toISOString() });
+  cleanupReceipts(); saveDb();
+
+  try {
+    const r = await fetch(ANTHROPIC_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: RECEIPT_MODEL, max_tokens: 400,
+        system: RECEIPT_PROMPT,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: buf.toString('base64') } },
+          { type: 'text', text: 'Today is ' + new Date().toISOString().slice(0, 10) + '. Read this receipt.' },
+        ] }],
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { console.error('Receipt scan API error', r.status, d && d.error); return res.status(502).json({ receiptId: id, error: 'Couldn’t read the receipt right now. You can still fill the details in yourself.' }); }
+    const text = (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+    let x; try { x = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)); } catch { x = null; }
+    if (!x || !x.is_receipt) return res.json({ receiptId: id, found: false });
+
+    const amount = Number(x.amount);
+    const today = new Date(); const dt = /^\d{4}-\d{2}-\d{2}$/.test(String(x.date || '')) ? x.date : null;
+    const okDate = dt && Date.parse(dt) <= today.getTime() + 864e5 && Date.parse(dt) > today.getTime() - 5 * 365 * 864e5 ? dt : null;
+    const merchant = x.merchant ? String(x.merchant).trim().slice(0, 40) : '';
+    res.json({ receiptId: id, found: true, fields: {
+      amount: isFinite(amount) && amount > 0 ? Math.round(amount * 100) / 100 : null,
+      currency: CURRENCIES.has(String(x.currency || '').toUpperCase()) ? String(x.currency).toUpperCase() : 'INR',
+      date: okDate,
+      category: CATEGORY_LIST.includes(x.category) ? x.category : 'Other',
+      payment: METHODS.includes(x.payment) ? x.payment : null,
+      note: String(x.description || merchant || '').trim().slice(0, 140),
+    } });
+  } catch (err) {
+    console.error('Receipt scan failed:', err.message);
+    res.status(502).json({ receiptId: id, error: 'Couldn’t read the receipt right now. You can still fill the details in yourself.' });
+  }
+});
+
+// Receipt photo: visible to everyone in the household of the expense it's attached to (or its uploader while unsaved)
+app.get('/api/receipts/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const r = db.receipts.find(x => x.id === req.params.id);
+  const e = r && r.expenseId && db.expenses.find(x => x.id === r.expenseId);
+  const ok = r && (e ? e.householdId === u.householdId : r.userId === u.id);
+  if (!ok || !fs.existsSync(receiptPath(r.id))) return res.status(404).json({ error: 'Receipt not found.' });
+  res.set('Cache-Control', 'private, max-age=86400').type('image/jpeg').sendFile(receiptPath(r.id));
+});
+
+// Attach / detach a receipt when an expense is saved
+function bindReceipt(u, e, receiptId) {
+  if (receiptId === undefined) return null;
+  if (!receiptId) { if (e.receiptId) { dropReceipt(e.receiptId); delete e.receiptId; } return null; }
+  if (e.receiptId === receiptId) return null;
+  const r = db.receipts.find(x => x.id === receiptId && x.userId === u.id && !x.expenseId);
+  if (!r) return 'That receipt photo has expired. Please scan it again.';
+  if (e.receiptId) dropReceipt(e.receiptId);
+  r.expenseId = e.id; e.receiptId = r.id;
+  return null;
+}
+
 // ---- expenses (shared by the whole household) ----
 const CURRENCIES = new Set(['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'THB', 'JPY']);
 const METHODS = ['Credit Card', 'Direct Bank Transfer', 'UPI', 'Cash', 'Other'];
@@ -451,7 +557,7 @@ function cleanExpense(b) {
     note: String(b.note || '').trim().slice(0, 140),
   } };
 }
-const expenseOut = e => ({ id: e.id, userId: e.userId, amount: e.amount, currency: e.currency, date: e.date, category: e.category, payment: e.payment, note: e.note, createdAt: e.createdAt });
+const expenseOut = e => ({ id: e.id, userId: e.userId, amount: e.amount, currency: e.currency, date: e.date, category: e.category, payment: e.payment, note: e.note, receiptId: e.receiptId || null, createdAt: e.createdAt });
 
 app.get('/api/expenses', (req, res) => {
   const u = requireUser(req, res); if (!u) return;
@@ -462,6 +568,7 @@ app.post('/api/expenses', (req, res) => {
   const u = requireUser(req, res); if (!u) return;
   const c = cleanExpense(req.body || {}); if (c.error) return res.status(400).json({ error: c.error });
   const e = { id: crypto.randomUUID(), householdId: u.householdId, userId: u.id, ...c.value, createdAt: new Date().toISOString() };
+  const err = bindReceipt(u, e, req.body.receiptId); if (err) return res.status(400).json({ error: err });
   db.expenses.push(e); saveDb(); res.json({ expense: expenseOut(e) });
 });
 
@@ -488,6 +595,7 @@ app.patch('/api/expenses/:id', (req, res) => {
   if (!e) return res.status(404).json({ error: 'Expense not found.' });
   if (e.userId !== u.id && ensureHousehold(u).ownerId !== u.id) return res.status(403).json({ error: 'Only the person who added it (or the household owner) can edit this.' });
   const c = cleanExpense(req.body || {}); if (c.error) return res.status(400).json({ error: c.error });
+  const err = bindReceipt(u, e, req.body.receiptId); if (err) return res.status(400).json({ error: err });
   Object.assign(e, c.value, { updatedAt: new Date().toISOString() });
   saveDb(); res.json({ expense: expenseOut(e) });
 });
@@ -498,6 +606,7 @@ app.delete('/api/expenses/:id', (req, res) => {
   if (!e) return res.status(404).json({ error: 'Expense not found.' });
   const h = ensureHousehold(u);
   if (e.userId !== u.id && h.ownerId !== u.id) return res.status(403).json({ error: 'Only the person who added it (or the household owner) can delete this.' });
+  if (e.receiptId) dropReceipt(e.receiptId);
   db.expenses = db.expenses.filter(x => x !== e); saveDb(); res.json({ ok: true });
 });
 
