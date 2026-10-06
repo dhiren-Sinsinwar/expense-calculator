@@ -542,10 +542,13 @@ app.post('/api/receipts/scan', async (req, res) => { try {
     } });
   } catch (err) {
     console.error('Receipt scan failed:', err.code || '', err.message);
-    const quota = err.code === 429;
-    res.status(quota ? 429 : 502).json({ receiptId: id, error: quota
+    // Reply 200 with the reason: proxies (Fly / Cloudflare) replace 5xx bodies with generic error pages
+    const badKey = /api key|permission|unauthenticated|forbidden/i.test(err.message) || err.code === 401 || err.code === 403;
+    const error = err.code === 429
       ? 'Today’s free scanning limit has been reached. The photo is attached; please fill in the details yourself, and scanning will be back tomorrow.'
-      : 'Couldn’t read the receipt right now. The photo is attached; you can fill the details in yourself.' });
+      : badKey ? 'Receipt scanning isn’t set up correctly (the scanning service rejected its key). The photo is attached; please fill in the details yourself.'
+      : 'Couldn’t read the receipt right now. The photo is attached; you can fill the details in yourself.';
+    res.json({ receiptId: id, found: false, error });
   }
 } catch (err) { console.error('🧾 Scan handler crashed:', err); if (!res.headersSent) res.status(500).json({ error: 'Scan failed on the server (' + err.message + ').' }); }
 });

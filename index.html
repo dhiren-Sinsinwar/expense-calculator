@@ -1626,6 +1626,7 @@
                 const d = await api('/api/receipts/scan', { image: dataUrl });
                 if (seq !== scanSeq) return;
                 receiptId = d.receiptId;
+                if (d.error) return scanState('failed', 'Couldn’t read the receipt', d.error);
                 if (!d.found) return scanState('failed', 'Couldn’t find a total on this photo', 'The photo is attached. Fill in the details below, or try a clearer photo.');
                 applyScan(d.fields);
                 const missing = [!d.fields.amount && 'amount', !d.fields.date && 'date'].filter(Boolean);
@@ -1649,7 +1650,8 @@
         function setReceiptPreview(src) {
             if (receiptURL && receiptURL.startsWith('blob:')) URL.revokeObjectURL(receiptURL);
             receiptURL = src;
-            document.getElementById('scanThumb').src = src || '';
+            const th = document.getElementById('scanThumb');
+            if (src) { th.src = src; th.hidden = false; } else { th.removeAttribute('src'); th.hidden = true; }
         }
         function clearReceipt() {
             scanSeq++; receiptId = null; setReceiptPreview(null); scanState('', '', ''); refreshScanBox();
