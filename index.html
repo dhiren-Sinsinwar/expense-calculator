@@ -528,7 +528,7 @@
         .form-msg.err { color: var(--danger); }
 
         /* expenses toolbar */
-        .toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 190px 170px auto; gap: 10px; margin-bottom: 12px; }
+        .toolbar { display: grid; grid-template-columns: minmax(200px, 1fr) 170px 160px 190px auto; gap: 10px; margin-bottom: 12px; }
         .search { position: relative; display: block; }
         .search .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 17px; height: 17px; }
         .search input { padding-left: 38px !important; }
@@ -681,6 +681,17 @@
         .editing-note { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--brand-ink); background: var(--brand-soft); border-radius: 10px; padding: 9px 12px; margin-bottom: 18px; }
         .editing-note .ic { width: 15px; height: 15px; }
         @media (max-width: 860px) { .row-edit { opacity: 1; } .done-acts .btn { flex: 1; justify-content: center; } }
+
+        /* ===== payment methods ===== */
+        .pay-donut-wrap { display: flex; align-items: center; gap: 22px; margin: 4px 0 14px; }
+        .pay-donut { width: 112px; height: 112px; border-radius: 50%; flex-shrink: 0; position: relative; }
+        .pay-donut::after { content: ''; position: absolute; inset: 22px; background: var(--surface); border-radius: 50%; }
+        .pay-donut-legend { font-size: 13px; color: var(--muted); }
+        .pay-donut-legend b { display: block; font-size: 20px; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .pay-line { cursor: pointer; border-radius: 10px; margin: 0 -8px; padding: 9px 8px; }
+        .pay-line:hover { background: #F6F8F5; }
+        .pay-line .nm span small { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 12px; }
+        .pay-line.none .nm span { color: var(--muted); font-style: italic; }
     </style>
 </head>
 <body>
@@ -831,6 +842,12 @@
         <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
         <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></symbol>
         <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+        <symbol id="p-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20M6 15h4"/></symbol>
+        <symbol id="p-upi" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="m10 9 3 3-3 3"/></symbol>
+        <symbol id="p-cash" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
+        <symbol id="p-bank" viewBox="0 0 24 24"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l8 5H4l8-5Z"/></symbol>
+        <symbol id="p-other" viewBox="0 0 24 24"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+        <symbol id="p-none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
         <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
         <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
@@ -939,7 +956,7 @@
 
                     <div class="form-row">
                         <div class="field"><label class="lbl" for="fDate">Date</label><input id="fDate" type="date"></div>
-                        <div class="field"><label class="lbl" for="fPayment">Paid with</label><input id="fPayment" type="text" placeholder="HDFC card, UPI, cash"></div>
+                        <div class="field"><label class="lbl" for="fPayment">Paid with</label><select id="fPayment"><option>Credit Card</option><option>Direct Bank Transfer</option><option>UPI</option><option>Cash</option><option>Other</option></select></div>
                     </div>
                     <div class="field"><label class="lbl" for="fNote">Description</label><input id="fNote" type="text" placeholder="What was it for?" onkeydown="if(event.key==='Enter')saveExpense()"></div>
 
@@ -969,9 +986,10 @@
 
             <section class="view" id="page-expenses">
                 <div class="toolbar">
-                    <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="qSearch" type="search" placeholder="Search description or card" oninput="renderAll()"></label>
+                    <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="qSearch" type="search" placeholder="Search description" oninput="renderAll()"></label>
                     <select id="qCategory" onchange="renderAll()" aria-label="Category"><option value="">All categories</option></select>
                     <select id="qMonth" onchange="renderAll()" aria-label="Month"><option value="">All months</option></select>
+                    <select id="qPay" onchange="renderAll()" aria-label="Paid with"><option value="">All payment methods</option><option>Credit Card</option><option>Direct Bank Transfer</option><option>UPI</option><option>Cash</option><option>Other</option><option value="__none">Not specified</option></select>
                     <button class="btn btn-quiet" onclick="exportCSV()"><svg class="ic"><use href="#i-download"/></svg>Export CSV</button>
                 </div>
                 <div class="filter-sum" id="filterSum"></div>
@@ -994,6 +1012,12 @@
                         <h2>Last 6 months</h2>
                         <p class="muted">Monthly total</p>
                         <div class="cols" id="monthBreakdown"></div>
+                    </div>
+                    <div class="panel">
+                        <h2>By payment method</h2>
+                        <p class="muted" id="payScope">All-time spending by how it was paid</p>
+                        <div class="pay-donut-wrap"><div class="pay-donut" id="payDonut"></div><div class="pay-donut-legend" id="payLegend"></div></div>
+                        <div id="payBreakdown"></div>
                     </div>
                 </div>
                 <p class="muted fx-note" id="fxNote"></p>
@@ -1257,6 +1281,7 @@
             showUser(user);
             ME = { id: user.id, you: true, name: user.name };
             buildChips();
+            document.getElementById('fPayment').value = lastMethod();
             showPage('dashboard');
             renderAll();
             fetchRates();
@@ -1396,8 +1421,10 @@
                 note: document.getElementById('fNote').value.trim(),
             };
         }
+        function lastMethod() { try { return localStorage.getItem('fmeLastMethod') || 'UPI'; } catch { return 'UPI'; } }
         function resetForm() {
             editingId = null;
+            document.getElementById('fPayment').value = lastMethod();
             document.getElementById('fAmount').value = '';
             document.getElementById('fNote').value = '';
             document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
@@ -1419,7 +1446,7 @@
             document.getElementById('fCurrency').value = e.currency;
             buildChips(e.category);
             document.getElementById('fDate').value = e.date;
-            document.getElementById('fPayment').value = e.payment || '';
+            document.getElementById('fPayment').value = PAY[e.payment] ? e.payment : lastMethod();
             document.getElementById('fNote').value = e.note || '';
             document.getElementById('saveBtn').textContent = 'Save changes';
             document.getElementById('cancelEdit').hidden = false;
@@ -1446,7 +1473,7 @@
             setTimeout(() => (edited ? document.querySelector('#doneEdited .btn') : document.getElementById('doneYes')).focus(), 0);
         }
         function afterSubmit(another) {
-            if (another) { const keep = { cur: document.getElementById('fCurrency').value, pay: document.getElementById('fPayment').value }; startNew(); document.getElementById('fCurrency').value = keep.cur; }
+            if (another) { const cur = document.getElementById('fCurrency').value; startNew(); document.getElementById('fCurrency').value = cur; }
             else { resetForm(); showPage('expenses'); }
         }
 
@@ -1468,6 +1495,7 @@
                 } else {
                     const d = await api('/api/expenses', v);
                     EXPENSES.push(d.expense);
+                    try { localStorage.setItem('fmeLastMethod', v.payment); } catch {}
                     showDone(d.expense, false);
                 }
                 renderAll();
@@ -1492,6 +1520,42 @@
             a.click();
         }
 
+
+        // ---------- payment methods ----------
+        const PAY = {
+            'Credit Card':          { i: 'card',  c: '#2D78AE' },
+            'Direct Bank Transfer': { i: 'bank',  c: '#56636B' },
+            'UPI':                  { i: 'upi',   c: '#2E7A4E' },
+            'Cash':                 { i: 'cash',  c: '#B08A12' },
+            'Other':                { i: 'other', c: '#8C47B0' },
+        };
+        const NONE = { i: 'none', c: '#B8BFB9' };
+        function payIcon(m) { const p = PAY[m] || NONE; return '<span class="cat-ic" style="background:' + p.c + '1A;color:' + p.c + '"><svg class="ic"><use href="#p-' + p.i + '"/></svg></span>'; }
+        function openPayment(m) {
+            showPage('expenses');
+            ['qSearch', 'qCategory', 'qMonth'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('qPay').value = m || '__none';
+            renderAll();
+        }
+        function renderPayments(all) {
+            const g = {};
+            all.forEach(e => { const v = toBase(e.amount, e.currency); if (v === null) return; const k = PAY[e.payment] ? e.payment : ''; g[k] = g[k] || { total: 0, count: 0 }; g[k].total += v; g[k].count++; });
+            const rows = Object.entries(g).filter(x => x[1].total > 0).sort((a, b) => b[1].total - a[1].total);
+            const tot = rows.reduce((t, x) => t + x[1].total, 0), max = rows.length ? rows[0][1].total : 1;
+            const sc = scopeId();
+            document.getElementById('payScope').textContent = 'All-time spending' + (sc ? ' by ' + (memberById(sc).you ? 'you' : firstName(sc)) : multi() ? ' for the household' : '') + ', by how it was paid. Tap one to see its expenses.';
+            let acc = 0;
+            document.getElementById('payDonut').style.background = rows.length ? 'conic-gradient(' + rows.map(([m, x]) => { const a = acc; acc += x.total / tot * 360; return (PAY[m] || NONE).c + ' ' + a.toFixed(1) + 'deg ' + acc.toFixed(1) + 'deg'; }).join(',') + ')' : 'var(--line-2)';
+            const top = rows.find(r => r[0]);
+            document.getElementById('payLegend').innerHTML = top ? 'Most used<b>' + esc(top[0]) + '</b>' + Math.round(top[1].total / tot * 100) + '% of spending' : 'Nothing yet';
+            document.getElementById('payBreakdown').innerHTML = rows.length ? rows.map(([m, x]) =>
+                '<div class="cat-line pay-line' + (m ? '' : ' none') + '" onclick="openPayment(\'' + m + '\')" title="See these expenses">' + payIcon(m) +
+                '<div><div class="nm"><span>' + (m || 'Not specified') + '<small>' + x.count + (x.count === 1 ? ' expense' : ' expenses') + '</small></span><em>' + Math.round(x.total / tot * 100) + '%</em></div>' +
+                '<div class="track"><span style="width:' + (x.total / max * 100).toFixed(1) + '%;background:' + (PAY[m] || NONE).c + '"></span></div></div>' +
+                '<div class="v">' + money0(x.total) + '</div></div>').join('')
+                : '<div class="empty-mini">Add expenses to see how you pay.</div>';
+        }
+
         // ---------- rendering ----------
         function sorted() { return loadExpenses().sort((a, b) => b.date.localeCompare(a.date) || String(b.createdAt).localeCompare(String(a.createdAt))); }
 
@@ -1499,10 +1563,12 @@
             const q = document.getElementById('qSearch').value.toLowerCase();
             const c = document.getElementById('qCategory').value;
             const m = document.getElementById('qMonth').value;
+            const pm = document.getElementById('qPay').value;
             return sorted().filter(e =>
-                (!q || (e.note || '').toLowerCase().includes(q) || (e.payment || '').toLowerCase().includes(q)) &&
+                (!q || (e.note || '').toLowerCase().includes(q)) &&
                 (!c || e.category === c) &&
-                (!m || monthKey(e.date) === m));
+                (!m || monthKey(e.date) === m) &&
+                (!pm || (pm === '__none' ? !PAY[e.payment] : e.payment === pm)));
         }
 
         function dayLabel(d) {
@@ -1610,6 +1676,8 @@
                     '<div class="cat-line"><span class="avatar" style="width:30px;height:30px;font-size:11px;background:' + avColor(id) + '">' + initials(memberById(id).name) + '</span><div><div class="nm"><span>' + esc(memberById(id).you ? 'You' : memberById(id).name) + '</span><em>' + Math.round(v / pt * 100) + '%</em></div>' +
                     '<div class="track"><span style="width:' + (v / pm * 100).toFixed(1) + '%;background:' + avColor(id) + '"></span></div></div><div class="v">' + money0(v) + '</div></div>').join('') : '<div class="empty-mini">Nothing yet.</div>';
             } else pp.hidden = true;
+
+            renderPayments(all);
 
             // analytics: months
             const months = [];

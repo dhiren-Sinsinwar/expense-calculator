@@ -422,6 +422,21 @@ app.delete('/api/household/members/:id', (req, res) => {
 
 // ---- expenses (shared by the whole household) ----
 const CURRENCIES = new Set(['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'THB', 'JPY']);
+const METHODS = ['Credit Card', 'Direct Bank Transfer', 'UPI', 'Cash', 'Other'];
+// Map anything typed before the dropdown existed (e.g. "HDFC card", "Kotak account") onto the fixed list
+function toMethod(v) {
+  const k = String(v || '').trim().toLowerCase();
+  if (!k) return '';
+  const exact = METHODS.find(m => m.toLowerCase() === k); if (exact) return exact;
+  if (/\bupi\b|gpay|google ?pay|phonepe|bhim/.test(k)) return 'UPI';
+  if (/\bcash\b/.test(k)) return 'Cash';
+  if (/card|credit|debit|amex|visa|master|rupay|diners/.test(k)) return 'Credit Card';
+  if (/account|a\/c|\bbank\b|net ?banking|transfer|nach|neft|imps|rtgs|ecs/.test(k)) return 'Direct Bank Transfer';
+  return 'Other';
+}
+let migrated = 0;
+db.expenses.forEach(e => { const m = toMethod(e.payment); if (m !== e.payment) { if (e.payment) e.paymentDetail = e.payment; e.payment = m; migrated++; } });
+if (migrated) { saveDb(); console.log('💳 Converted ' + migrated + ' expense(s) to the payment-method list'); }
 function cleanExpense(b) {
   const amount = Number(b.amount);
   if (!isFinite(amount) || amount === 0 || Math.abs(amount) > 1e9) return { error: 'Enter a valid amount.' };
@@ -432,7 +447,7 @@ function cleanExpense(b) {
   return { value: {
     amount: Math.round(amount * 100) / 100, currency, date,
     category: String(b.category || 'Other').slice(0, 40),
-    payment: String(b.payment || '').trim().slice(0, 60),
+    payment: toMethod(b.payment),
     note: String(b.note || '').trim().slice(0, 140),
   } };
 }
