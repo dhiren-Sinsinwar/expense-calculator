@@ -1215,7 +1215,11 @@
                 body: body ? JSON.stringify(body) : undefined
             });
             const d = await r.json().catch(() => ({}));
-            if (!r.ok) { const e = new Error(d.error || 'Something went wrong'); e.data = d; e.status = r.status; throw e; }
+            if (!r.ok) {
+                const why = { 413: 'the upload was too large', 502: 'the server didn’t respond', 503: 'the server is restarting', 504: 'the server took too long', 520: 'Cloudflare couldn’t reach the server', 522: 'Cloudflare couldn’t reach the server', 524: 'the server took too long' }[r.status];
+                const e = new Error(d.error || ('Something went wrong (error ' + r.status + (why ? ': ' + why : '') + '). Please try again.'));
+                e.data = d; e.status = r.status; throw e;
+            }
             return d;
         }
         function setMsg(id, text, kind) { const el = document.getElementById(id); el.textContent = text || ''; el.className = 'auth-msg' + (kind ? ' ' + kind : ''); }

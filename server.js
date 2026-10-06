@@ -474,15 +474,17 @@ async function readWithGemini(buf, today) {
     };
     const r = await fetch(GEMINI_BASE + '/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(45000),
-    });
+      body: JSON.stringify(body), signal: AbortSignal.timeout(25000),
+    }).catch(e => { throw new ScanError('Gemini ' + model + ' ' + (e.name === 'TimeoutError' ? 'timed out' : e.message), e.name === 'TimeoutError' ? 504 : 502); });
     const d = await r.json().catch(() => ({}));
     if (r.ok) {
-      const parts = ((((d.candidates || [])[0] || {}).content || {}).parts || []);
+      const cand = (d.candidates || [])[0] || {};
+      const parts = ((cand.content || {}).parts || []);
+      console.log('🧾 Gemini ' + model + ' ok', cand.finishReason || '', (d.usageMetadata && d.usageMetadata.totalTokenCount) || '');
       return parseJsonText(parts.map(p => p.text || '').join(''));
     }
     lastErr = new ScanError((d.error && d.error.message) || ('Gemini ' + r.status), r.status);
-    console.error('Gemini ' + model + ' failed:', r.status, d.error && d.error.status);
+    console.error('🧾 Gemini ' + model + ' failed:', r.status, d.error && d.error.status, String((d.error && d.error.message) || '').slice(0, 300));
     if (![429, 404, 500, 503].includes(r.status)) break;   // only fall through to the backup model on quota / availability errors
   }
   throw lastErr;
@@ -505,7 +507,7 @@ async function readWithClaude(buf, today) {
   return parseJsonText((d.content || []).filter(c => c.type === 'text').map(c => c.text).join(''));
 }
 
-app.post('/api/receipts/scan', async (req, res) => {
+app.post('/api/receipts/scan', async (req, res) => { try {
   const u = requireUser(req, res); if (!u) return;
   if (!process.env.GEMINI_API_KEY && !process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'Receipt scanning isn’t set up yet.' });
   const recent1h = recent(scanLog.get(u.id), 3600e3);
@@ -514,6 +516,7 @@ app.post('/api/receipts/scan', async (req, res) => {
   const buf = Buffer.from(b64, 'base64');
   if (buf.length < 500 || buf.length > 6 * 1024 * 1024 || buf[0] !== 0xFF || buf[1] !== 0xD8) return res.status(400).json({ error: 'Please upload a JPEG photo of the receipt.' });
   recent1h.push(Date.now()); scanLog.set(u.id, recent1h);
+  console.log('🧾 Scan started: ' + Math.round(buf.length / 1024) + ' KB via ' + (process.env.GEMINI_API_KEY ? 'Gemini' : 'Claude'));
 
   const id = crypto.randomUUID();
   fs.writeFileSync(receiptPath(id), buf);
@@ -544,6 +547,7 @@ app.post('/api/receipts/scan', async (req, res) => {
       ? 'Today’s free scanning limit has been reached. The photo is attached; please fill in the details yourself, and scanning will be back tomorrow.'
       : 'Couldn’t read the receipt right now. The photo is attached; you can fill the details in yourself.' });
   }
+} catch (err) { console.error('🧾 Scan handler crashed:', err); if (!res.headersSent) res.status(500).json({ error: 'Scan failed on the server (' + err.message + ').' }); }
 });
 
 // Receipt photo: visible to everyone in the household of the expense it's attached to (or its uploader while unsaved)
@@ -651,6 +655,15 @@ app.delete('/api/expenses/:id', (req, res) => {
   if (e.receiptId) dropReceipt(e.receiptId);
   db.expenses = db.expenses.filter(x => x !== e); saveDb(); res.json({ ok: true });
 });
+
+// Any error inside an /api route comes back as JSON (never an HTML error page)
+app.use((err, req, res, next) => {
+  console.error('API error on', req.method, req.path, err.type || '', err.message);
+  if (res.headersSent) return next(err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({ error: status === 413 ? 'That photo is too large. Please try again.' : 'Server error (' + (err.type || err.message || status) + ').' });
+});
+process.on('unhandledRejection', e => console.error('Unhandled rejection:', e));
 
 // Catch-all for SPA routing
 app.get('*', (req, res) => {
