@@ -432,7 +432,32 @@ const RECEIPT_MODEL = process.env.RECEIPT_MODEL || 'claude-haiku-4-5-20251001';
 const ANTHROPIC_URL = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com') + '/v1/messages';
 const GEMINI_BASE = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
 // Each model has its own free daily quota, so the second is a backup when the first runs out
-const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.5-flash-lite').split(',').map(x => x.trim()).filter(Boolean);
+const GEMINI_PREFERRED = (process.env.GEMINI_MODELS || 'gemini-3.8-flash,gemini-3.5-flash-lite').split(',').map(x => x.trim()).filter(Boolean);
+let geminiModels = null;          // resolved list, cached; refreshed if Google retires a model
+let geminiListedAt = 0;
+// Ask Google which Flash models this key can use, newest first (so a retired model never breaks scanning)
+async function discoverGeminiModels() {
+  try {
+    const r = await fetch(GEMINI_BASE + '/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY }, signal: AbortSignal.timeout(10000) });
+    const d = await r.json().catch(() => ({}));
+    const ver = n => (n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || '0';
+    return (d.models || [])
+      .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map(m => String(m.name || '').replace(/^models\//, ''))
+      .filter(n => /^gemini-\d+(\.\d+)?-flash(-lite)?$/.test(n))
+      .sort((a, b) => parseFloat(ver(b)) - parseFloat(ver(a)) || (a.includes('lite') - b.includes('lite')));
+  } catch (e) { console.error('🧾 Gemini model list failed:', e.message); return []; }
+}
+let geminiFound = [];
+async function geminiCandidates(refresh) {
+  if (!geminiModels || refresh) {
+    if (!geminiModels || Date.now() - geminiListedAt > 60e3) { geminiFound = await discoverGeminiModels(); geminiListedAt = Date.now(); }
+    const preferred = GEMINI_PREFERRED.filter(m => !geminiFound.length || geminiFound.includes(m));
+    geminiModels = [...new Set([...preferred, ...geminiFound.slice(0, 4)])];
+    console.log('🧾 Gemini models:', geminiModels.join(', ') || '(none found)');
+  }
+  return geminiModels;
+}
 const CATEGORY_LIST = ['Food & Dining', 'Groceries', 'Travel', 'Transport', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health', 'Subscriptions', 'Loans & EMI', 'Transfers', 'Other'];
 const scanLog = new Map(); // userId -> [timestamps]
 const receiptPath = id => path.join(RECEIPT_DIR, id.replace(/[^a-f0-9-]/gi, '') + '.jpg');
@@ -460,17 +485,19 @@ function parseJsonText(text) {
   const t = String(text || '');
   try { return JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch { return null; }
 }
-async function readWithGemini(buf, today) {
-  let lastErr;
-  for (const model of GEMINI_MODELS) {
+async function readWithGemini(buf, today, retried) {
+  const models = await geminiCandidates(retried);
+  if (!models.length) throw new ScanError('No Gemini Flash model is available for this API key', 404);
+  let lastErr, sawRetired = false;
+  for (const model of models) {
     const body = {
       systemInstruction: { parts: [{ text: RECEIPT_PROMPT }] },
       contents: [{ role: 'user', parts: [
         { inline_data: { mime_type: 'image/jpeg', data: buf.toString('base64') } },
         { text: 'Today is ' + today + '. Read this receipt.' },
       ] }],
-      generationConfig: { temperature: 0, maxOutputTokens: 600, responseMimeType: 'application/json',
-        ...(/2\.5-flash$/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
+      // generous output limit: newer models may "think" before answering, and that counts against it
+      generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' },
     };
     const r = await fetch(GEMINI_BASE + '/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
@@ -479,14 +506,19 @@ async function readWithGemini(buf, today) {
     const d = await r.json().catch(() => ({}));
     if (r.ok) {
       const cand = (d.candidates || [])[0] || {};
-      const parts = ((cand.content || {}).parts || []);
+      const parts = ((cand.content || {}).parts || []).filter(p => !p.thought);
       console.log('🧾 Gemini ' + model + ' ok', cand.finishReason || '', (d.usageMetadata && d.usageMetadata.totalTokenCount) || '');
-      return parseJsonText(parts.map(p => p.text || '').join(''));
+      const x = parseJsonText(parts.map(p => p.text || '').join(''));
+      if (x) { geminiModels = [model, ...models.filter(m => m !== model)]; return x; }   // remember what works
+      lastErr = new ScanError('Gemini ' + model + ' returned no readable answer (' + (cand.finishReason || 'empty') + ')', 502);
+      continue;
     }
     lastErr = new ScanError((d.error && d.error.message) || ('Gemini ' + r.status), r.status);
     console.error('🧾 Gemini ' + model + ' failed:', r.status, d.error && d.error.status, String((d.error && d.error.message) || '').slice(0, 300));
-    if (![429, 404, 500, 503].includes(r.status)) break;   // only fall through to the backup model on quota / availability errors
+    if (r.status === 404) sawRetired = true;
+    if (![429, 404, 500, 503].includes(r.status)) break;   // only try the next model on quota / availability errors
   }
+  if (sawRetired && !retried) return readWithGemini(buf, today, true);   // a model was retired: re-check the list once
   throw lastErr;
 }
 async function readWithClaude(buf, today) {
