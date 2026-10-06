@@ -658,6 +658,29 @@
             .toolbar { grid-template-columns: 1fr 1fr; }
             .nav-menu button { font-size: 10.5px; }
         }
+
+        /* ===== submit confirmation + edit ===== */
+        .done-panel { text-align: center; padding: 40px 28px 32px; }
+        .done-panel[hidden], #addForm[hidden], .editing-note[hidden] { display: none; }
+        .done-check { width: 56px; height: 56px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; margin: 0 auto 14px; }
+        .done-check .ic { width: 28px; height: 28px; stroke-width: 2.4; }
+        .done-panel h2 { font-size: 20px; }
+        .done-summary { display: inline-flex; align-items: center; gap: 12px; margin: 18px auto 6px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 14px; text-align: left; max-width: 100%; }
+        .done-summary .row-title { white-space: normal; }
+        .done-summary .amt { font-weight: 700; font-variant-numeric: tabular-nums; margin-left: 10px; white-space: nowrap; }
+        .done-q { font-weight: 600; margin: 22px 0 14px; font-size: 15px; }
+        .done-acts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        #doneEdited .done-acts { margin-top: 22px; }
+        .row-acts { display: flex; gap: 2px; justify-content: flex-end; }
+        .row.editable { cursor: pointer; }
+        .row.editable:hover { background: #FAFBF9; }
+        .row-edit { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; opacity: 0; }
+        .row:hover .row-edit, .row-edit:focus-visible { opacity: 1; }
+        .row-edit:hover { background: var(--brand-soft); color: var(--brand-ink); }
+        .row-edit .ic, .row-del .ic { width: 16px; height: 16px; }
+        .editing-note { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--brand-ink); background: var(--brand-soft); border-radius: 10px; padding: 9px 12px; margin-bottom: 18px; }
+        .editing-note .ic { width: 15px; height: 15px; }
+        @media (max-width: 860px) { .row-edit { opacity: 1; } .done-acts .btn { flex: 1; justify-content: center; } }
     </style>
 </head>
 <body>
@@ -807,6 +830,7 @@
         <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
         <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
         <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></symbol>
         <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
         <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
@@ -901,7 +925,8 @@
             </section>
 
             <section class="view" id="page-add">
-                <div class="panel form-panel">
+                <div class="panel form-panel" id="addForm">
+                    <div class="editing-note" id="editNote" hidden><svg class="ic"><use href="#i-edit"/></svg><span id="editNoteText"></span></div>
                     <label class="lbl" for="fAmount">Amount</label>
                     <div class="amount-field">
                         <select id="fCurrency" aria-label="Currency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select>
@@ -920,7 +945,24 @@
 
                     <div class="form-foot">
                         <span class="form-msg" id="formMsg" role="status"></span>
-                        <button class="btn btn-solid" onclick="saveExpense()">Save expense</button>
+                        <button class="btn btn-quiet" id="cancelEdit" onclick="cancelEdit()" hidden>Cancel</button>
+                        <button class="btn btn-solid" id="saveBtn" onclick="saveExpense()">Submit expense</button>
+                    </div>
+                </div>
+
+                <div class="panel form-panel done-panel" id="addDone" hidden>
+                    <div class="done-check"><svg class="ic"><use href="#i-check"/></svg></div>
+                    <h2 id="doneTitle">Expense submitted</h2>
+                    <div class="done-summary" id="doneSummary"></div>
+                    <div id="doneAsk">
+                        <p class="done-q">Want to submit another expense?</p>
+                        <div class="done-acts">
+                            <button class="btn btn-quiet" onclick="afterSubmit(false)">No, show my expenses</button>
+                            <button class="btn btn-solid" id="doneYes" onclick="afterSubmit(true)">Yes, add another</button>
+                        </div>
+                    </div>
+                    <div id="doneEdited" hidden>
+                        <div class="done-acts"><button class="btn btn-solid" onclick="afterSubmit(false)">Back to expenses</button></div>
                     </div>
                 </div>
             </section>
@@ -1342,30 +1384,95 @@
         function monthKey(d) { return d.slice(0, 7); }
 
         // ---------- actions ----------
-        let saving = false;
+        let saving = false, editingId = null;
+
+        function formValues() {
+            return {
+                amount: parseFloat(document.getElementById('fAmount').value),
+                date: document.getElementById('fDate').value,
+                currency: document.getElementById('fCurrency').value,
+                category: document.getElementById('fCategory').value,
+                payment: document.getElementById('fPayment').value.trim(),
+                note: document.getElementById('fNote').value.trim(),
+            };
+        }
+        function resetForm() {
+            editingId = null;
+            document.getElementById('fAmount').value = '';
+            document.getElementById('fNote').value = '';
+            document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('saveBtn').textContent = 'Submit expense';
+            document.getElementById('cancelEdit').hidden = true;
+            document.getElementById('editNote').hidden = true;
+            document.getElementById('addForm').hidden = false;
+            document.getElementById('addDone').hidden = true;
+            flash('formMsg', '');
+        }
+        function startNew() { resetForm(); showPage('add'); }
+
+        function openEdit(id) {
+            const e = EXPENSES.find(x => x.id === id);
+            if (!e || !canDelete(e)) return;
+            showPage('add');            // resets any previous state first
+            editingId = id;
+            document.getElementById('fAmount').value = Math.abs(e.amount);
+            document.getElementById('fCurrency').value = e.currency;
+            buildChips(e.category);
+            document.getElementById('fDate').value = e.date;
+            document.getElementById('fPayment').value = e.payment || '';
+            document.getElementById('fNote').value = e.note || '';
+            document.getElementById('saveBtn').textContent = 'Save changes';
+            document.getElementById('cancelEdit').hidden = false;
+            const who = e.userId === (ME && ME.id) ? '' : ' added by ' + memberById(e.userId).name.split(' ')[0];
+            document.getElementById('editNoteText').textContent = 'Editing an expense' + who + ' from ' + dayLabel(e.date);
+            document.getElementById('editNote').hidden = false;
+            document.getElementById('pageTitle').textContent = 'Edit expense';
+            document.getElementById('pageSubtitle').textContent = 'Change any detail, then save';
+        }
+        function cancelEdit() { resetForm(); showPage('expenses'); }
+
+        function showDone(e, edited) {
+            document.getElementById('addForm').hidden = true;
+            document.getElementById('addDone').hidden = false;
+            document.getElementById('doneTitle').textContent = edited ? 'Changes saved' : 'Expense submitted';
+            document.getElementById('doneSummary').innerHTML = catIcon(e.category) +
+                '<div><div class="row-title">' + (esc(e.note) || esc(e.category)) + '</div><div class="row-sub">' +
+                esc([e.category, dayLabel(e.date)].join(', ')) + (multi() && !edited ? ', shared with ' + esc(HH.household.name) : '') + '</div></div>' +
+                '<span class="amt">' + fmt(e.amount, e.currency) + '</span>';
+            document.getElementById('doneAsk').hidden = edited;
+            document.getElementById('doneEdited').hidden = !edited;
+            document.getElementById('pageTitle').textContent = edited ? 'Expense updated' : 'Expense submitted';
+            document.getElementById('pageSubtitle').textContent = edited ? 'Your changes are saved' + (multi() ? ' for everyone in the household' : '') : 'It’s in your expenses' + (multi() ? ' and visible to your household' : '');
+            setTimeout(() => (edited ? document.querySelector('#doneEdited .btn') : document.getElementById('doneYes')).focus(), 0);
+        }
+        function afterSubmit(another) {
+            if (another) { const keep = { cur: document.getElementById('fCurrency').value, pay: document.getElementById('fPayment').value }; startNew(); document.getElementById('fCurrency').value = keep.cur; }
+            else { resetForm(); showPage('expenses'); }
+        }
+
         async function saveExpense() {
             if (saving) return;
-            const amount = parseFloat(document.getElementById('fAmount').value);
-            const date = document.getElementById('fDate').value;
-            if (!amount || amount <= 0) { flash('formMsg', 'Enter an amount greater than 0.', true); document.getElementById('fAmount').focus(); return; }
-            if (!date) { flash('formMsg', 'Pick a date.', true); return; }
+            const v = formValues();
+            if (!v.amount || v.amount <= 0) { flash('formMsg', 'Enter an amount greater than 0.', true); document.getElementById('fAmount').focus(); return; }
+            if (!v.date) { flash('formMsg', 'Pick a date.', true); return; }
             saving = true;
+            const btn = document.getElementById('saveBtn'); const label = btn.textContent; btn.disabled = true; btn.textContent = editingId ? 'Saving…' : 'Submitting…';
             try {
-                const d = await api('/api/expenses', {
-                    amount, date,
-                    currency: document.getElementById('fCurrency').value,
-                    category: document.getElementById('fCategory').value,
-                    payment: document.getElementById('fPayment').value.trim(),
-                    note: document.getElementById('fNote').value.trim(),
-                });
-                EXPENSES.push(d.expense);
-                document.getElementById('fAmount').value = '';
-                document.getElementById('fNote').value = '';
-                flash('formMsg', multi() ? 'Saved to ' + HH.household.name + '.' : 'Expense saved. Add another or go to Overview.');
-                document.getElementById('fAmount').focus();
+                if (editingId) {
+                    const old = EXPENSES.find(x => x.id === editingId);
+                    if (old && old.amount < 0) v.amount = -v.amount;          // keep refunds as refunds
+                    const d = await api('/api/expenses/' + editingId, v, 'PATCH');
+                    EXPENSES = EXPENSES.map(x => x.id === editingId ? d.expense : x);
+                    editingId = null;
+                    showDone(d.expense, true);
+                } else {
+                    const d = await api('/api/expenses', v);
+                    EXPENSES.push(d.expense);
+                    showDone(d.expense, false);
+                }
                 renderAll();
             } catch (e) { flash('formMsg', e.message, true); }
-            finally { saving = false; }
+            finally { saving = false; btn.disabled = false; btn.textContent = label; }
         }
 
         async function deleteExpense(id) {
@@ -1418,11 +1525,12 @@
                     const conv = e.currency !== BASE && toBase(e.amount, e.currency) !== null ? '<small>≈ ' + fmt(toBase(e.amount, e.currency), BASE) + '</small>' : '';
                     const sub = [e.category, e.payment].filter(Boolean).map(esc).join(', ');
                     const who = multi() && !scopeId() ? '<span class="who"><span class="mini-av" style="background:' + avColor(e.userId) + '">' + initials(memberById(e.userId).name) + '</span>' + esc(firstName(e.userId)) + '</span>' : '';
-                    const del = withDelete && canDelete(e);
-                    return '<div class="row' + (withDelete ? '' : ' no-del') + '">' + catIcon(e.category) +
+                    const can = canDelete(e);
+                    return '<div class="row' + (withDelete ? '' : ' no-del') + (can ? ' editable" onclick="openEdit(\'' + e.id + '\')" title="Edit expense' : '') + '">' + catIcon(e.category) +
                         '<div class="row-main"><div class="row-title">' + (esc(e.note) || esc(e.category)) + '</div><div class="row-sub">' + who + sub + '</div></div>' +
                         '<div class="row-amt' + (e.amount < 0 ? ' refund' : '') + '">' + fmt(e.amount, e.currency) + conv + '</div>' +
-                        (withDelete ? (del ? '<button class="row-del" onclick="deleteExpense(\'' + e.id + '\')" aria-label="Delete expense"><svg class="ic"><use href="#i-trash"/></svg></button>' : '<span></span>') : '') +
+                        (withDelete ? (can ? '<div class="row-acts"><button class="row-edit" onclick="event.stopPropagation();openEdit(\'' + e.id + '\')" aria-label="Edit expense"><svg class="ic"><use href="#i-edit"/></svg></button>' +
+                            '<button class="row-del" onclick="event.stopPropagation();deleteExpense(\'' + e.id + '\')" aria-label="Delete expense"><svg class="ic"><use href="#i-trash"/></svg></button></div>' : '<span></span>') : '') +
                         '</div>';
                 }).join('')).join('');
         }
@@ -1616,10 +1724,11 @@
             document.getElementById('pageSubtitle').textContent = PAGES[page][1]();
             document.getElementById('topAdd').style.visibility = page === 'add' ? 'hidden' : '';
             if (page === 'add') {
+                if (editingId || !document.getElementById('addDone').hidden) resetForm();
                 if (!document.getElementById('fDate').value) document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
                 flash('formMsg', '');
                 setTimeout(() => document.getElementById('fAmount').focus(), 0);
-            }
+            } else if (editingId) resetForm();
             if (page === 'household') refreshHousehold();
             window.scrollTo(0, 0);
         }

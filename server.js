@@ -467,6 +467,16 @@ app.post('/api/expenses/import', (req, res) => {
   res.json({ added });
 });
 
+app.patch('/api/expenses/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const e = db.expenses.find(x => x.id === req.params.id && x.householdId === u.householdId);
+  if (!e) return res.status(404).json({ error: 'Expense not found.' });
+  if (e.userId !== u.id && ensureHousehold(u).ownerId !== u.id) return res.status(403).json({ error: 'Only the person who added it (or the household owner) can edit this.' });
+  const c = cleanExpense(req.body || {}); if (c.error) return res.status(400).json({ error: c.error });
+  Object.assign(e, c.value, { updatedAt: new Date().toISOString() });
+  saveDb(); res.json({ expense: expenseOut(e) });
+});
+
 app.delete('/api/expenses/:id', (req, res) => {
   const u = requireUser(req, res); if (!u) return;
   const e = db.expenses.find(x => x.id === req.params.id && x.householdId === u.householdId);
