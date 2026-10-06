@@ -722,6 +722,23 @@
         .row-clip .ic { width: 13px; height: 13px; }
         @media (max-width: 860px) { .scan-btns { width: 100%; } .scan-btns label { flex: 1; justify-content: center; } }
         @media (prefers-reduced-motion: reduce) { .filled, .scan.reading .scan-status strong::before { animation: none; } }
+
+        /* ===== split the bill ===== */
+        .split-box { margin: -6px 0 22px; }
+        .split-box .opt { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+        .split-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .split-chip { min-width: 52px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; font-variant-numeric: tabular-nums; }
+        .split-chip:hover { border-color: #C9D0C8; }
+        .split-chip[aria-checked=true] { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .split-more { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 13.5px; color: var(--ink-2); }
+        .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+        .stepper button { width: 38px; height: 38px; border: 0; background: #F8FAF7; font-size: 18px; cursor: pointer; color: var(--ink); }
+        .stepper input { width: 56px !important; border: 0 !important; border-radius: 0 !important; text-align: center; font-weight: 700; padding: 8px 4px !important; -moz-appearance: textfield; box-shadow: none !important; }
+        .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .split-result { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-ink); font-size: 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+        .split-result b { font-size: 20px; font-variant-numeric: tabular-nums; color: var(--ink); }
+        .split-result span { color: var(--ink-2); }
+        .row-amt small.split { color: var(--brand-ink); }
     </style>
 </head>
 <body>
@@ -999,10 +1016,20 @@
                             <button class="ib-close" onclick="clearReceipt()" aria-label="Remove receipt" title="Remove receipt"><svg class="ic"><use href="#i-x"/></svg></button>
                         </div>
                     </div>
-                    <label class="lbl" for="fAmount">Amount</label>
+                    <label class="lbl" for="fAmount" id="amountLbl">Amount</label>
                     <div class="amount-field">
-                        <select id="fCurrency" aria-label="Currency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select>
-                        <input id="fAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                        <select id="fCurrency" aria-label="Currency" onchange="renderSplit()"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select>
+                        <input id="fAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="renderSplit()">
+                    </div>
+
+                    <div class="split-box">
+                        <div class="lbl">Split the bill <span class="opt">Only your share is saved as the expense</span></div>
+                        <div class="split-chips" id="splitChips" role="radiogroup" aria-label="Split the bill"></div>
+                        <div class="split-more" id="splitMore" hidden>
+                            <label for="splitN">Number of people</label>
+                            <div class="stepper"><button type="button" onclick="stepSplit(-1)" aria-label="Fewer people">−</button><input id="splitN" type="number" min="2" max="50" inputmode="numeric" oninput="setSplit(parseInt(this.value,10)||2, true)"><button type="button" onclick="stepSplit(1)" aria-label="More people">+</button></div>
+                        </div>
+                        <div class="split-result" id="splitResult" hidden></div>
                     </div>
 
                     <div class="lbl">Category</div>
@@ -1340,6 +1367,7 @@
             showUser(user);
             ME = { id: user.id, you: true, name: user.name };
             buildChips();
+            setSplit(1);
             document.getElementById('fPayment').value = lastMethod();
             showPage('dashboard');
             renderAll();
@@ -1471,8 +1499,11 @@
         let saving = false, editingId = null;
 
         function formValues() {
+            const entered = parseFloat(document.getElementById('fAmount').value);
             return {
-                amount: parseFloat(document.getElementById('fAmount').value),
+                amount: splitN > 1 ? round2(entered / splitN) : entered,
+                billTotal: splitN > 1 ? entered : null,
+                splitWays: splitN,
                 date: document.getElementById('fDate').value,
                 currency: document.getElementById('fCurrency').value,
                 category: document.getElementById('fCategory').value,
@@ -1484,6 +1515,7 @@
         function lastMethod() { try { return localStorage.getItem('fmeLastMethod') || 'UPI'; } catch { return 'UPI'; } }
         function resetForm() {
             editingId = null;
+            setSplit(1);
             document.getElementById('fPayment').value = lastMethod();
             document.getElementById('fAmount').value = '';
             document.getElementById('fNote').value = '';
@@ -1503,7 +1535,8 @@
             if (!e || !canDelete(e)) return;
             showPage('add');            // resets any previous state first
             editingId = id;
-            document.getElementById('fAmount').value = Math.abs(e.amount);
+            document.getElementById('fAmount').value = e.splitWays > 1 && e.billTotal ? Math.abs(e.billTotal) : Math.abs(e.amount);
+            setSplit(e.splitWays > 1 ? e.splitWays : 1);
             document.getElementById('fCurrency').value = e.currency;
             buildChips(e.category);
             document.getElementById('fDate').value = e.date;
@@ -1526,7 +1559,8 @@
             document.getElementById('doneTitle').textContent = edited ? 'Changes saved' : 'Expense submitted';
             document.getElementById('doneSummary').innerHTML = catIcon(e.category) +
                 '<div><div class="row-title">' + (esc(e.note) || esc(e.category)) + '</div><div class="row-sub">' +
-                esc([e.category, dayLabel(e.date)].join(', ')) + (multi() && !edited ? ', shared with ' + esc(HH.household.name) : '') + '</div></div>' +
+                esc([e.category, dayLabel(e.date)].join(', ')) + (multi() && !edited ? ', shared with ' + esc(HH.household.name) : '') +
+                (e.splitWays > 1 && e.billTotal ? '<br>Your share of ' + esc(fmt(e.billTotal, e.currency)) + ', split ' + e.splitWays + ' ways' : '') + '</div></div>' +
                 '<span class="amt">' + fmt(e.amount, e.currency) + '</span>' +
                 (e.receiptId ? '<button class="row-edit" style="opacity:1" onclick="openReceipt(\'' + e.receiptId + '\')" aria-label="View receipt" title="View receipt"><svg class="ic"><use href="#i-clip"/></svg></button>' : '');
             document.getElementById('doneAsk').hidden = edited;
@@ -1550,7 +1584,7 @@
             try {
                 if (editingId) {
                     const old = EXPENSES.find(x => x.id === editingId);
-                    if (old && old.amount < 0) v.amount = -v.amount;          // keep refunds as refunds
+                    if (old && old.amount < 0) { v.amount = -v.amount; if (v.billTotal) v.billTotal = -v.billTotal; }   // keep refunds as refunds
                     const d = await api('/api/expenses/' + editingId, v, 'PATCH');
                     EXPENSES = EXPENSES.map(x => x.id === editingId ? d.expense : x);
                     editingId = null;
@@ -1574,8 +1608,8 @@
         function canDelete(e) { return e.userId === (ME && ME.id) || (HH && HH.household.isOwner); }
 
         function exportCSV() {
-            const rows = [['Date', 'Description', 'Category', 'Paid with', 'Amount', 'Currency', 'Added by']];
-            filtered().forEach(e => rows.push([e.date, e.note, e.category, e.payment, e.amount, e.currency, memberById(e.userId).name]));
+            const rows = [['Date', 'Description', 'Category', 'Paid with', 'Amount (your share)', 'Currency', 'Bill total', 'Split ways', 'Added by']];
+            filtered().forEach(e => rows.push([e.date, e.note, e.category, e.payment, e.amount, e.currency, e.splitWays > 1 ? e.billTotal : '', e.splitWays > 1 ? e.splitWays : '', memberById(e.userId).name]));
             const csv = rows.map(r => r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -1584,6 +1618,35 @@
         }
 
 
+
+
+        // ---------- split the bill ----------
+        let splitN = 1;
+        const SPLIT_QUICK = [1, 2, 3, 4, 5, 6];
+        function round2(x) { return Math.round(x * 100) / 100; }
+        function setSplit(n, fromInput) {
+            splitN = Math.max(1, Math.min(50, n || 1));
+            const more = splitN > 6 || (!SPLIT_QUICK.includes(splitN));
+            document.getElementById('splitChips').innerHTML = SPLIT_QUICK.map(k =>
+                '<button type="button" class="split-chip" role="radio" aria-checked="' + (k === splitN) + '" onclick="setSplit(' + k + ')" aria-label="' + (k === 1 ? 'Not split' : 'Split between ' + k + ' people') + '">' + (k === 1 ? 'No split' : '÷' + k) + '</button>').join('') +
+                '<button type="button" class="split-chip" role="radio" aria-checked="' + more + '" onclick="openSplitMore()">' + (more ? '÷' + splitN : 'More') + '</button>';
+            document.getElementById('splitMore').hidden = !more;
+            if (!fromInput) document.getElementById('splitN').value = more ? splitN : 7;
+            renderSplit();
+        }
+        function openSplitMore() { setSplit(splitN > 6 ? splitN : 7); document.getElementById('splitN').focus(); }
+        function stepSplit(d) { setSplit(Math.max(2, (splitN > 1 ? splitN : 6) + d)); }
+        function renderSplit() {
+            const total = parseFloat(document.getElementById('fAmount').value);
+            document.getElementById('amountLbl').textContent = splitN > 1 ? 'Bill total' : 'Amount';
+            const box = document.getElementById('splitResult');
+            if (splitN < 2) { box.hidden = true; return; }
+            const cur = document.getElementById('fCurrency').value;
+            box.hidden = false;
+            box.innerHTML = total > 0
+                ? 'Your share <b>' + fmt(round2(total / splitN), cur) + '</b><span>of ' + fmt(total, cur) + ', split ' + splitN + ' ways</span>'
+                : '<span>Enter the bill total above to see your share (split ' + splitN + ' ways).</span>';
+        }
 
         // ---------- receipt scanning ----------
         let RECEIPTS_ON = false, receiptId = null, receiptURL = null, scanSeq = 0;
@@ -1630,7 +1693,7 @@
                 if (!d.found) return scanState('failed', 'Couldn’t find a total on this photo', 'The photo is attached. Fill in the details below, or try a clearer photo.');
                 applyScan(d.fields);
                 const missing = [!d.fields.amount && 'amount', !d.fields.date && 'date'].filter(Boolean);
-                scanState('read', 'Details filled in from your receipt', missing.length ? 'Couldn’t read the ' + missing.join(' or ') + '. Please add it, then check and submit.' : 'Check everything looks right, then submit.');
+                scanState('read', 'Details filled in from your receipt', missing.length ? 'Couldn’t read the ' + missing.join(' or ') + '. Please add it, then check and submit.' : 'Check everything looks right, then submit. Shared the bill? Split it under the amount.');
             } catch (e) {
                 if (seq !== scanSeq) return;
                 receiptId = (e.data && e.data.receiptId) || null;
@@ -1739,7 +1802,8 @@
             return groups.map(g =>
                 '<div class="day"><span>' + dayLabel(g.d) + '</span><span class="num">' + fmt(sumBase(g.items).total, BASE) + '</span></div>' +
                 g.items.map(e => {
-                    const conv = e.currency !== BASE && toBase(e.amount, e.currency) !== null ? '<small>≈ ' + fmt(toBase(e.amount, e.currency), BASE) + '</small>' : '';
+                    const conv = (e.splitWays > 1 && e.billTotal ? '<small class="split">÷' + e.splitWays + ' of ' + fmt(e.billTotal, e.currency) + '</small>' : '') +
+                        (e.currency !== BASE && toBase(e.amount, e.currency) !== null ? '<small>≈ ' + fmt(toBase(e.amount, e.currency), BASE) + '</small>' : '');
                     const sub = [e.category, e.payment].filter(Boolean).map(esc).join(', ');
                     const who = multi() && !scopeId() ? '<span class="who"><span class="mini-av" style="background:' + avColor(e.userId) + '">' + initials(memberById(e.userId).name) + '</span>' + esc(firstName(e.userId)) + '</span>' : '';
                     const can = canDelete(e);

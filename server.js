@@ -624,6 +624,16 @@ function toMethod(v) {
 let migrated = 0;
 db.expenses.forEach(e => { const m = toMethod(e.payment); if (m !== e.payment) { if (e.payment) e.paymentDetail = e.payment; e.payment = m; migrated++; } });
 if (migrated) { saveDb(); console.log('💳 Converted ' + migrated + ' expense(s) to the payment-method list'); }
+// Shared bills: amount = your share; billTotal / splitWays record the full bill
+function splitFields(b, amount) {
+  const n = Math.round(Number(b.splitWays));
+  if (!isFinite(n) || n < 2) return { splitWays: 1, billTotal: null };
+  const ways = Math.min(n, 50);
+  let total = Number(b.billTotal);
+  if (!isFinite(total) || total === 0) total = amount * ways;
+  if (Math.sign(total) !== Math.sign(amount)) total = -total;
+  return { splitWays: ways, billTotal: Math.round(total * 100) / 100 };
+}
 function cleanExpense(b) {
   const amount = Number(b.amount);
   if (!isFinite(amount) || amount === 0 || Math.abs(amount) > 1e9) return { error: 'Enter a valid amount.' };
@@ -635,10 +645,11 @@ function cleanExpense(b) {
     amount: Math.round(amount * 100) / 100, currency, date,
     category: String(b.category || 'Other').slice(0, 40),
     payment: toMethod(b.payment),
+    ...splitFields(b, amount),
     note: String(b.note || '').trim().slice(0, 140),
   } };
 }
-const expenseOut = e => ({ id: e.id, userId: e.userId, amount: e.amount, currency: e.currency, date: e.date, category: e.category, payment: e.payment, note: e.note, receiptId: e.receiptId || null, createdAt: e.createdAt });
+const expenseOut = e => ({ id: e.id, userId: e.userId, amount: e.amount, currency: e.currency, date: e.date, category: e.category, payment: e.payment, note: e.note, receiptId: e.receiptId || null, splitWays: e.splitWays || 1, billTotal: e.billTotal || null, createdAt: e.createdAt });
 
 app.get('/api/expenses', (req, res) => {
   const u = requireUser(req, res); if (!u) return;
