@@ -702,6 +702,7 @@
         .scan-text strong { display: flex; align-items: center; gap: 6px; font-size: 15px; }
         .scan-text strong .ic { color: var(--brand); width: 17px; height: 17px; }
         .scan-text span { font-size: 13px; color: var(--muted); }
+        .scan-text .scan-note { font-size: 11.5px; margin-top: 2px; opacity: .85; }
         .scan-btns { display: flex; gap: 8px; }
         .scan-btns label { cursor: pointer; }
         .scan-active { display: flex; align-items: center; gap: 14px; }
@@ -986,7 +987,7 @@
                     <div class="editing-note" id="editNote" hidden><svg class="ic"><use href="#i-edit"/></svg><span id="editNoteText"></span></div>
                     <div class="scan" id="scanBox" hidden>
                         <div class="scan-idle" id="scanIdle">
-                            <div class="scan-text"><strong><svg class="ic"><use href="#i-sparkle"/></svg>Scan a receipt</strong><span>Take a photo and we’ll fill in the details for you</span></div>
+                            <div class="scan-text"><strong><svg class="ic"><use href="#i-sparkle"/></svg>Scan a receipt</strong><span>Take a photo and we’ll fill in the details for you</span><span class="scan-note" id="scanNote"></span></div>
                             <div class="scan-btns">
                                 <label class="btn btn-solid"><svg class="ic"><use href="#i-camera"/></svg>Take photo<input type="file" accept="image/*" capture="environment" onchange="pickReceipt(this)" hidden></label>
                                 <label class="btn btn-quiet"><svg class="ic"><use href="#i-image"/></svg>Choose photo<input type="file" accept="image/*" onchange="pickReceipt(this)" hidden></label>
@@ -1582,7 +1583,7 @@
 
         // ---------- receipt scanning ----------
         let RECEIPTS_ON = false, receiptId = null, receiptURL = null, scanSeq = 0;
-        fetch('/api/otp/status').then(r => r.json()).then(d => { RECEIPTS_ON = !!d.receipts; refreshScanBox(); }).catch(() => {});
+        fetch('/api/otp/status').then(r => r.json()).then(d => { RECEIPTS_ON = !!d.receipts; document.getElementById('scanNote').textContent = d.receiptProvider === 'gemini' ? 'Photos are read by Google Gemini' : d.receiptProvider === 'claude' ? 'Photos are read by Anthropic Claude' : ''; refreshScanBox(); }).catch(() => {});
         function refreshScanBox() { document.getElementById('scanBox').hidden = !RECEIPTS_ON && !receiptId; }
 
         // shrink on the phone: max 1600px, JPEG ~85% (keeps uploads small and scans cheap)

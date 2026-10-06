@@ -153,7 +153,7 @@ setInterval(() => {               // housekeeping
   for (const [k, v] of ipSends) { const r = recent(v, 3600e3); r.length ? ipSends.set(k, r) : ipSends.delete(k); }
 }, 10 * 60 * 1000).unref();
 
-app.get('/api/otp/status', (req, res) => res.json({ testMode: TEST_MODE, persistent: PERSISTENT, receipts: !!process.env.ANTHROPIC_API_KEY }));
+app.get('/api/otp/status', (req, res) => res.json({ testMode: TEST_MODE, persistent: PERSISTENT, receipts: !!(process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY), receiptProvider: process.env.GEMINI_API_KEY ? 'gemini' : process.env.ANTHROPIC_API_KEY ? 'claude' : null }));
 
 app.post('/api/otp/send', async (req, res) => {
   const phone = normalizePhone(req.body && req.body.phone);
@@ -423,12 +423,16 @@ app.delete('/api/household/members/:id', (req, res) => {
 
 
 // ================= RECEIPT SCANNING =================
-// Reads a receipt photo with Claude (vision) and returns the fields for the Add expense form.
-// Needs ANTHROPIC_API_KEY (flyctl secrets set ANTHROPIC_API_KEY=...). Photos are kept on the volume.
+// Reads a receipt photo with an AI vision model and returns the fields for the Add expense form.
+// Provider: Google Gemini (free tier) when GEMINI_API_KEY is set, otherwise Claude when ANTHROPIC_API_KEY is set.
+// Photos are kept on the volume.
 const RECEIPT_DIR = path.join(DATA_DIR, 'receipts');
 fs.mkdirSync(RECEIPT_DIR, { recursive: true });
 const RECEIPT_MODEL = process.env.RECEIPT_MODEL || 'claude-haiku-4-5-20251001';
 const ANTHROPIC_URL = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com') + '/v1/messages';
+const GEMINI_BASE = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
+// Each model has its own free daily quota, so the second is a backup when the first runs out
+const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.5-flash-lite').split(',').map(x => x.trim()).filter(Boolean);
 const CATEGORY_LIST = ['Food & Dining', 'Groceries', 'Travel', 'Transport', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health', 'Subscriptions', 'Loans & EMI', 'Transfers', 'Other'];
 const scanLog = new Map(); // userId -> [timestamps]
 const receiptPath = id => path.join(RECEIPT_DIR, id.replace(/[^a-f0-9-]/gi, '') + '.jpg');
@@ -451,9 +455,59 @@ Rules:
 - description: 2–6 words saying what it was for, starting with the merchant, e.g. "Starbucks coffee", "Indian Oil petrol".
 - If the image is not a receipt or bill, or the total is unreadable, set is_receipt false and the rest null.`;
 
+class ScanError extends Error { constructor(msg, code) { super(msg); this.code = code; } }
+function parseJsonText(text) {
+  const t = String(text || '');
+  try { return JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch { return null; }
+}
+async function readWithGemini(buf, today) {
+  let lastErr;
+  for (const model of GEMINI_MODELS) {
+    const body = {
+      systemInstruction: { parts: [{ text: RECEIPT_PROMPT }] },
+      contents: [{ role: 'user', parts: [
+        { inline_data: { mime_type: 'image/jpeg', data: buf.toString('base64') } },
+        { text: 'Today is ' + today + '. Read this receipt.' },
+      ] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 600, responseMimeType: 'application/json',
+        ...(/2\.5-flash$/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
+    };
+    const r = await fetch(GEMINI_BASE + '/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(45000),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) {
+      const parts = ((((d.candidates || [])[0] || {}).content || {}).parts || []);
+      return parseJsonText(parts.map(p => p.text || '').join(''));
+    }
+    lastErr = new ScanError((d.error && d.error.message) || ('Gemini ' + r.status), r.status);
+    console.error('Gemini ' + model + ' failed:', r.status, d.error && d.error.status);
+    if (![429, 404, 500, 503].includes(r.status)) break;   // only fall through to the backup model on quota / availability errors
+  }
+  throw lastErr;
+}
+async function readWithClaude(buf, today) {
+  const r = await fetch(ANTHROPIC_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: RECEIPT_MODEL, max_tokens: 400, system: RECEIPT_PROMPT,
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: buf.toString('base64') } },
+        { type: 'text', text: 'Today is ' + today + '. Read this receipt.' },
+      ] }],
+    }),
+    signal: AbortSignal.timeout(45000),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new ScanError((d.error && d.error.message) || ('Claude ' + r.status), r.status);
+  return parseJsonText((d.content || []).filter(c => c.type === 'text').map(c => c.text).join(''));
+}
+
 app.post('/api/receipts/scan', async (req, res) => {
   const u = requireUser(req, res); if (!u) return;
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'Receipt scanning isn’t set up yet.' });
+  if (!process.env.GEMINI_API_KEY && !process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'Receipt scanning isn’t set up yet.' });
   const recent1h = recent(scanLog.get(u.id), 3600e3);
   if (recent1h.length >= 40) return res.status(429).json({ error: 'You’ve scanned a lot of receipts this hour. Try again a bit later.' });
   const b64 = String((req.body && req.body.image) || '').replace(/^data:image\/\w+;base64,/, '');
@@ -467,28 +521,13 @@ app.post('/api/receipts/scan', async (req, res) => {
   cleanupReceipts(); saveDb();
 
   try {
-    const r = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: RECEIPT_MODEL, max_tokens: 400,
-        system: RECEIPT_PROMPT,
-        messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: buf.toString('base64') } },
-          { type: 'text', text: 'Today is ' + new Date().toISOString().slice(0, 10) + '. Read this receipt.' },
-        ] }],
-      }),
-      signal: AbortSignal.timeout(45000),
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { console.error('Receipt scan API error', r.status, d && d.error); return res.status(502).json({ receiptId: id, error: 'Couldn’t read the receipt right now. You can still fill the details in yourself.' }); }
-    const text = (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
-    let x; try { x = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)); } catch { x = null; }
+    const today = new Date().toISOString().slice(0, 10);
+    const x = process.env.GEMINI_API_KEY ? await readWithGemini(buf, today) : await readWithClaude(buf, today);
     if (!x || !x.is_receipt) return res.json({ receiptId: id, found: false });
 
     const amount = Number(x.amount);
-    const today = new Date(); const dt = /^\d{4}-\d{2}-\d{2}$/.test(String(x.date || '')) ? x.date : null;
-    const okDate = dt && Date.parse(dt) <= today.getTime() + 864e5 && Date.parse(dt) > today.getTime() - 5 * 365 * 864e5 ? dt : null;
+    const now = Date.now(); const dt = /^\d{4}-\d{2}-\d{2}$/.test(String(x.date || '')) ? x.date : null;
+    const okDate = dt && Date.parse(dt) <= now + 864e5 && Date.parse(dt) > now - 5 * 365 * 864e5 ? dt : null;
     const merchant = x.merchant ? String(x.merchant).trim().slice(0, 40) : '';
     res.json({ receiptId: id, found: true, fields: {
       amount: isFinite(amount) && amount > 0 ? Math.round(amount * 100) / 100 : null,
@@ -499,8 +538,11 @@ app.post('/api/receipts/scan', async (req, res) => {
       note: String(x.description || merchant || '').trim().slice(0, 140),
     } });
   } catch (err) {
-    console.error('Receipt scan failed:', err.message);
-    res.status(502).json({ receiptId: id, error: 'Couldn’t read the receipt right now. You can still fill the details in yourself.' });
+    console.error('Receipt scan failed:', err.code || '', err.message);
+    const quota = err.code === 429;
+    res.status(quota ? 429 : 502).json({ receiptId: id, error: quota
+      ? 'Today’s free scanning limit has been reached. The photo is attached; please fill in the details yourself, and scanning will be back tomorrow.'
+      : 'Couldn’t read the receipt right now. The photo is attached; you can fill the details in yourself.' });
   }
 });
 

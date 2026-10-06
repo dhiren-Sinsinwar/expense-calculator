@@ -1,5 +1,5 @@
 // Find My Expense service worker: makes the app installable and loads instantly / offline.
-const VERSION = 'fme-v5';
+const VERSION = 'fme-v6';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
