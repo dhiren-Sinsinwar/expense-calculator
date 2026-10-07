@@ -739,6 +739,13 @@
         .split-result b { font-size: 20px; font-variant-numeric: tabular-nums; color: var(--ink); }
         .split-result span { color: var(--ink-2); }
         .row-amt small.split { color: var(--brand-ink); }
+
+        /* ===== refresh ===== */
+        .refresh-btn { padding: 10px 14px; }
+        .refresh-btn.spinning .ic { animation: spin .8s linear infinite; }
+        .refresh-btn.done { color: var(--brand-ink); border-color: #CFE3D5; background: var(--brand-soft); }
+        @media (max-width: 860px) { .refresh-btn { width: 40px; height: 40px; padding: 0; justify-content: center; } .refresh-btn .rf-label { display: none; } }
+        @media (prefers-reduced-motion: reduce) { .refresh-btn.spinning .ic { animation: none; } }
     </style>
 </head>
 <body>
@@ -906,6 +913,7 @@
         <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
         <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
         <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
         <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
         <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
@@ -961,6 +969,7 @@
                 </div>
                 <div class="topbar-actions">
                     <label class="scope" id="scopeWrap" hidden><svg class="ic"><use href="#i-users"/></svg><select id="scopeUser" onchange="renderAll()" aria-label="Whose expenses"></select></label>
+                    <button class="btn btn-quiet refresh-btn" id="refreshBtn" onclick="refreshData(true)" aria-label="Refresh" title="Get the latest expenses"><svg class="ic"><use href="#i-refresh"/></svg><span class="rf-label">Refresh</span></button>
                     <button class="btn btn-solid" id="topAdd" onclick="showPage('add')"><svg class="ic"><use href="#i-plus"/></svg>Add expense</button>
                     <button class="icon-btn only-mobile" onclick="openAccount()" aria-label="Account"><svg class="ic"><use href="#i-user"/></svg></button>
                 </div>
@@ -1460,13 +1469,44 @@
         function scopeId() { const el = document.getElementById('scopeUser'); return multi() && el ? el.value : ''; }
         function loadExpenses() { const sc = scopeId(); return EXPENSES.filter(e => !sc || e.userId === sc).slice(); }
 
+        let lastLoad = 0, loadingNow = null;
         async function loadData() {
-            try {
-                const d = await api('/api/expenses');
-                EXPENSES = d.expenses; setHousehold(d); loaded = true;
-                renderAll();
-            } catch (e) { if (e.status === 401) logout(); else flashGlobal('Couldn’t load your expenses. Check your connection and refresh.'); }
+            if (loadingNow) return loadingNow;                 // don't stack requests
+            loadingNow = (async () => {
+                try {
+                    const d = await api('/api/expenses');
+                    EXPENSES = d.expenses; setHousehold(d); loaded = true; lastLoad = Date.now();
+                    renderAll();
+                    return true;
+                } catch (e) {
+                    if (e.status === 401) logout(); else if (!loaded) flashGlobal('Couldn’t load your expenses. Check your connection and refresh.');
+                    return false;
+                } finally { loadingNow = null; }
+            })();
+            return loadingNow;
         }
+
+        // Refresh button + automatic refresh when you come back to the app and every minute while it's open
+        async function refreshData(manual) {
+            const btn = document.getElementById('refreshBtn'), lbl = btn.querySelector('.rf-label');
+            if (manual) { btn.classList.remove('done'); btn.classList.add('spinning'); btn.disabled = true; }
+            const ok = await loadData();
+            if (manual) {
+                btn.classList.remove('spinning'); btn.disabled = false;
+                btn.classList.add('done'); lbl.textContent = ok ? 'Updated' : 'Offline';
+                btn.title = ok ? 'Updated just now' : 'Couldn’t reach the server';
+                clearTimeout(refreshData.t);
+                refreshData.t = setTimeout(() => { btn.classList.remove('done'); lbl.textContent = 'Refresh'; btn.title = 'Get the latest expenses'; }, 1800);
+            }
+        }
+        function autoRefresh(minAgeMs) {
+            if (!getAuth() || document.hidden || !document.getElementById('dashboard').classList.contains('show')) return;
+            if (Date.now() - lastLoad > minAgeMs) refreshData(false);
+        }
+        document.addEventListener('visibilitychange', () => autoRefresh(10e3));
+        window.addEventListener('focus', () => autoRefresh(10e3));
+        window.addEventListener('pageshow', e => { if (e.persisted) autoRefresh(0); });
+        setInterval(() => autoRefresh(55e3), 60e3);
         function flashGlobal(t) { document.getElementById('recentList').innerHTML = '<div class="loading-row">' + esc(t) + '</div>'; }
 
         // move expenses saved in this browser (before server storage) into the account, once
@@ -2006,6 +2046,7 @@
             document.getElementById('pageTitle').textContent = PAGES[page][0];
             document.getElementById('pageSubtitle').textContent = PAGES[page][1]();
             document.getElementById('topAdd').style.visibility = page === 'add' ? 'hidden' : '';
+            document.getElementById('refreshBtn').hidden = !['dashboard', 'expenses', 'analytics'].includes(page);
             if (page === 'add') {
                 if (editingId || !document.getElementById('addDone').hidden) resetForm();
                 if (!document.getElementById('fDate').value) document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
