@@ -746,6 +746,33 @@
         .refresh-btn.done { color: var(--brand-ink); border-color: #CFE3D5; background: var(--brand-soft); }
         @media (max-width: 860px) { .refresh-btn { width: 40px; height: 40px; padding: 0; justify-content: center; } .refresh-btn .rf-label { display: none; } }
         @media (prefers-reduced-motion: reduce) { .refresh-btn.spinning .ic { animation: none; } }
+
+        /* ===== currency picker ===== */
+        .amount-field .cur-btn { display: flex; align-items: center; gap: 4px; padding: 0 12px 0 16px; border: 0; border-right: 1px solid var(--line); background: #F8FAF7; font: inherit; font-weight: 700; font-size: 15px; color: var(--ink); cursor: pointer; flex-shrink: 0; }
+        .amount-field .cur-btn .ic { width: 15px; height: 15px; color: var(--muted); }
+        .amount-field .cur-btn:hover { background: var(--line-2); }
+        .cur-sheet { width: min(460px, 100%); max-height: min(640px, 86vh); display: flex; flex-direction: column; padding: 18px 18px 8px !important; font-family: 'Instrument Sans', -apple-system, sans-serif; }
+        .cur-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .cur-head .modal-close { position: static; }
+        .cur-title { font-size: 18px; font-weight: 700; color: #16201A; }
+        .cur-search { position: relative; display: block; margin-bottom: 8px; }
+        .cur-search .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; fill: none; stroke: #66706A; stroke-width: 1.8; }
+        .cur-search input { width: 100%; padding: 12px 12px 12px 38px; border: 1px solid #E2E6E1; border-radius: 10px; font: inherit; font-size: 16px; }
+        .cur-search input:focus { outline: none; border-color: #2E7A4E; box-shadow: 0 0 0 3px #E6F1E9; }
+        .cur-list { overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 0 -6px; padding: 0 6px 8px; }
+        .cur-group { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #66706A; padding: 12px 8px 4px; }
+        .cur-item { display: grid; grid-template-columns: 50px 1fr auto; align-items: center; gap: 8px; width: 100%; padding: 10px 8px; border: 0; background: none; border-radius: 9px; text-align: left; cursor: pointer; font: inherit; color: #16201A; }
+        .cur-item:hover, .cur-item.hl { background: #F3F5F2; }
+        .cur-item b { font-size: 14.5px; font-variant-numeric: tabular-nums; }
+        .cur-item span { font-size: 14px; color: #3A453E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cur-item .sym { color: #66706A; font-size: 13px; }
+        .cur-item.sel { background: #E6F1E9; }
+        .cur-item.sel b { color: #1F5A38; }
+        .cur-empty { padding: 24px 8px; color: #66706A; font-size: 14px; text-align: center; }
+        @media (max-width: 860px) {
+            #currencyModal { align-items: flex-end; }
+            .cur-sheet { width: 100%; max-height: 88vh; border-radius: 18px 18px 0 0 !important; padding-bottom: calc(8px + env(safe-area-inset-bottom)) !important; }
+        }
     </style>
 </head>
 <body>
@@ -875,6 +902,19 @@
             <div class="modal-title">Install Find My Expense</div>
             <div class="modal-subtitle">Get it on your home screen. It opens full screen, like any other app, and needs no app store.</div>
             <div id="installBody"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="currencyModal" onclick="if(event.target===this)closeCurrencyPicker()">
+        <div class="modal-content cur-sheet" role="dialog" aria-label="Choose currency">
+            <div class="cur-head">
+                <div class="cur-title">Choose currency</div>
+                <button class="modal-close" onclick="closeCurrencyPicker()" aria-label="Close">✕</button>
+            </div>
+            <label class="cur-search"><svg class="ic"><use href="#i-search"/></svg>
+                <input id="curSearch" type="search" placeholder="Search: code, name, country or symbol" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="renderCurrencyList()" onkeydown="currencyKey(event)">
+            </label>
+            <div class="cur-list" id="curList" role="listbox"></div>
         </div>
     </div>
 
@@ -1027,7 +1067,7 @@
                     </div>
                     <label class="lbl" for="fAmount" id="amountLbl">Amount</label>
                     <div class="amount-field">
-                        <select id="fCurrency" aria-label="Currency" onchange="currencyPicked()" onfocus="currencyLabels(true)" onmousedown="currencyLabels(true)" onblur="currencyLabels(false)"></select>
+                        <input type="hidden" id="fCurrency" value="INR"><button type="button" class="cur-btn" id="curBtn" onclick="openCurrencyPicker()" aria-label="Currency: INR. Change currency"><span id="curCode">INR</span><svg class="ic"><use href="#i-down"/></svg></button>
                         <input id="fAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="renderSplit()">
                     </div>
 
@@ -1672,27 +1712,79 @@
         function rememberCurrency(c) {
             try { localStorage.setItem('fmeRecentCur', JSON.stringify([c, ...recentCurrencies().filter(x => x !== c)].slice(0, 5))); } catch {}
         }
-        function buildCurrencySelect(selected) {
-            const sel = document.getElementById('fCurrency');
-            selected = selected || sel.value || 'INR';
-            const recent = recentCurrencies();
-            const used = [...new Set(EXPENSES.map(e => e.currency))].filter(c => ALL_CURRENCIES.includes(c));
-            const top = [...new Set([...recent, ...used])].slice(0, 6);
-            const opt = c => '<option value="' + c + '" data-full="' + c + (curName(c) ? ' · ' + esc(curName(c)) : '') + '">' + c + '</option>';
-            sel.innerHTML =
-                (top.length ? '<optgroup label="Recently used">' + top.map(opt).join('') + '</optgroup>' : '') +
-                '<optgroup label="Common">' + COMMON_CURRENCIES.filter(c => !top.includes(c)).map(opt).join('') + '</optgroup>' +
-                '<optgroup label="All currencies">' + ALL_CURRENCIES.filter(c => !top.includes(c) && !COMMON_CURRENCIES.includes(c)).map(opt).join('') + '</optgroup>';
-            sel.value = ALL_CURRENCIES.includes(selected) ? selected : 'INR';
+        // extra search words: countries, places and symbols people actually type
+        const CUR_ALIASES = {
+            INR: 'india rupee ₹ rs', USD: 'usa us america united states $ dollar', EUR: 'europe euro € germany france italy spain netherlands',
+            GBP: 'uk britain england london pound £ sterling', AED: 'uae dubai abu dhabi emirates dirham', SGD: 'singapore s$',
+            THB: 'thailand bangkok phuket ฿ baht', IDR: 'indonesia bali jakarta rp rupiah', MYR: 'malaysia kuala lumpur rm ringgit',
+            CAD: 'canada toronto vancouver c$ ca$', AUD: 'australia sydney melbourne a$', NZD: 'new zealand nz$', JPY: 'japan tokyo ¥ yen',
+            CHF: 'switzerland swiss zurich', VND: 'vietnam hanoi ho chi minh ₫ dong', LKR: 'sri lanka colombo', NPR: 'nepal kathmandu',
+            HKD: 'hong kong hk$', SAR: 'saudi arabia riyadh', QAR: 'qatar doha', CNY: 'china yuan renminbi ¥', KRW: 'south korea seoul ₩ won',
+            MVR: 'maldives', BTN: 'bhutan', BDT: 'bangladesh dhaka ৳', PKR: 'pakistan', TRY: 'turkey istanbul ₺ lira', ZAR: 'south africa rand',
+            PHP: 'philippines manila ₱ peso', MXN: 'mexico peso', BRL: 'brazil real', RUB: 'russia ruble ₽', EGP: 'egypt', KES: 'kenya',
+            OMR: 'oman muscat', KWD: 'kuwait', BHD: 'bahrain', TWD: 'taiwan', MUR: 'mauritius', SEK: 'sweden', NOK: 'norway', DKK: 'denmark',
+            ILS: 'israel shekel ₪', GEL: 'georgia tbilisi', KHR: 'cambodia', LAK: 'laos', MMK: 'myanmar', MOP: 'macau', FJD: 'fiji',
+        };
+        function curSymbol(c) {
+            try { const p = new Intl.NumberFormat('en-US', { style: 'currency', currency: c, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find(x => x.type === 'currency'); return p && p.value !== c ? p.value : ''; } catch { return ''; }
         }
-        // full names while the list is open, just the code once chosen (keeps the amount box tidy)
-        function currencyLabels(full) {
-            document.querySelectorAll('#fCurrency option').forEach(o => { o.textContent = full ? o.dataset.full : o.value; });
-        }
-        function currencyPicked() { currencyLabels(false); renderSplit(); }
+        let curHl = 0, curMatches = [];
         function setCurrency(c) {
-            const sel = document.getElementById('fCurrency');
-            if (!sel.querySelector('option[value="' + c + '"]')) buildCurrencySelect(c); else sel.value = c;
+            if (!ALL_CURRENCIES.includes(c)) c = 'INR';
+            document.getElementById('fCurrency').value = c;
+            document.getElementById('curCode').textContent = c;
+            document.getElementById('curBtn').setAttribute('aria-label', 'Currency: ' + c + (curName(c) ? ' (' + curName(c) + ')' : '') + '. Change currency');
+            renderSplit();
+        }
+        function buildCurrencySelect(selected) { setCurrency(selected || document.getElementById('fCurrency').value || 'INR'); }
+        function openCurrencyPicker() {
+            const q = document.getElementById('curSearch'); q.value = '';
+            renderCurrencyList();
+            document.getElementById('currencyModal').classList.add('show');
+            setTimeout(() => q.focus(), 30);
+        }
+        function closeCurrencyPicker() { document.getElementById('currencyModal').classList.remove('show'); }
+        function pickCurrency(c) { setCurrency(c); closeCurrencyPicker(); document.getElementById('fAmount').focus(); }
+        function curRow(c, i) {
+            const sel = c === document.getElementById('fCurrency').value;
+            return '<button type="button" role="option" aria-selected="' + sel + '" class="cur-item' + (sel ? ' sel' : '') + (i === curHl ? ' hl' : '') + '" data-i="' + i + '" onclick="pickCurrency(\'' + c + '\')">' +
+                '<b>' + c + '</b><span>' + esc(curName(c) || c) + '</span><span class="sym">' + esc(curSymbol(c)) + '</span></button>';
+        }
+        function renderCurrencyList() {
+            const q = document.getElementById('curSearch').value.trim().toLowerCase();
+            const list = document.getElementById('curList');
+            curHl = 0;
+            if (!q) {
+                const used = [...new Set(EXPENSES.map(e => e.currency))].filter(c => ALL_CURRENCIES.includes(c));
+                const top = [...new Set([...recentCurrencies(), ...used])].slice(0, 6);
+                const common = COMMON_CURRENCIES.filter(c => !top.includes(c));
+                const rest = ALL_CURRENCIES.filter(c => !top.includes(c) && !COMMON_CURRENCIES.includes(c));
+                curMatches = [...top, ...common, ...rest];
+                let i = 0;
+                list.innerHTML = (top.length ? '<div class="cur-group">Recently used</div>' + top.map(c => curRow(c, i++)).join('') : '') +
+                    '<div class="cur-group">Common</div>' + common.map(c => curRow(c, i++)).join('') +
+                    '<div class="cur-group">All currencies</div>' + rest.map(c => curRow(c, i++)).join('');
+                return;
+            }
+            // rank: exact code > code starts with > name/country/symbol match
+            const scored = ALL_CURRENCIES.map(c => {
+                const code = c.toLowerCase(), hay = (curName(c) + ' ' + (CUR_ALIASES[c] || '') + ' ' + curSymbol(c)).toLowerCase();
+                let sc = code === q ? 0 : code.startsWith(q) ? 1 : hay.split(/\s+/).some(w => w.startsWith(q)) ? 2 : hay.includes(q) ? 3 : 9;
+                if (sc < 9 && COMMON_CURRENCIES.includes(c)) sc -= 0.5;
+                return [c, sc];
+            }).filter(x => x[1] < 9).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
+            curMatches = scored.map(x => x[0]);
+            list.innerHTML = curMatches.length ? curMatches.map(curRow).join('') : '<div class="cur-empty">No currency matches “' + esc(q) + '”</div>';
+        }
+        function currencyKey(e) {
+            if (e.key === 'Enter') { e.preventDefault(); if (curMatches[curHl]) pickCurrency(curMatches[curHl]); }
+            else if (e.key === 'Escape') closeCurrencyPicker();
+            else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                curHl = Math.max(0, Math.min(curMatches.length - 1, curHl + (e.key === 'ArrowDown' ? 1 : -1)));
+                document.querySelectorAll('#curList .cur-item').forEach(b => b.classList.toggle('hl', +b.dataset.i === curHl));
+                const el = document.querySelector('#curList .cur-item.hl'); if (el) el.scrollIntoView({ block: 'nearest' });
+            }
         }
 
         // ---------- split the bill ----------
