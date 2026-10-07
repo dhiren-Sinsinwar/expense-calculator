@@ -1027,7 +1027,7 @@
                     </div>
                     <label class="lbl" for="fAmount" id="amountLbl">Amount</label>
                     <div class="amount-field">
-                        <select id="fCurrency" aria-label="Currency" onchange="renderSplit()"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SGD</option><option>THB</option><option>JPY</option></select>
+                        <select id="fCurrency" aria-label="Currency" onchange="currencyPicked()" onfocus="currencyLabels(true)" onmousedown="currencyLabels(true)" onblur="currencyLabels(false)"></select>
                         <input id="fAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="renderSplit()">
                     </div>
 
@@ -1376,6 +1376,7 @@
             showUser(user);
             ME = { id: user.id, you: true, name: user.name };
             buildChips();
+            buildCurrencySelect('INR');
             setSplit(1);
             document.getElementById('fPayment').value = lastMethod();
             showPage('dashboard');
@@ -1524,7 +1525,7 @@
             return r ? amount / r : null;
         }
         function fmt(amount, cur) {
-            try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: cur, maximumFractionDigits: 2 }).format(amount); }
+            try { return new Intl.NumberFormat(cur === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency: cur, maximumFractionDigits: 2 }).format(amount); }
             catch { return cur + ' ' + amount.toFixed(2); }
         }
         function sumBase(list) {
@@ -1577,7 +1578,7 @@
             editingId = id;
             document.getElementById('fAmount').value = e.splitWays > 1 && e.billTotal ? Math.abs(e.billTotal) : Math.abs(e.amount);
             setSplit(e.splitWays > 1 ? e.splitWays : 1);
-            document.getElementById('fCurrency').value = e.currency;
+            setCurrency(e.currency);
             buildChips(e.category);
             document.getElementById('fDate').value = e.date;
             document.getElementById('fPayment').value = PAY[e.payment] ? e.payment : lastMethod();
@@ -1610,7 +1611,7 @@
             setTimeout(() => (edited ? document.querySelector('#doneEdited .btn') : document.getElementById('doneYes')).focus(), 0);
         }
         function afterSubmit(another) {
-            if (another) { const cur = document.getElementById('fCurrency').value; startNew(); document.getElementById('fCurrency').value = cur; }
+            if (another) { const cur = document.getElementById('fCurrency').value; startNew(); buildCurrencySelect(cur); }
             else { resetForm(); showPage('expenses'); }
         }
 
@@ -1633,6 +1634,7 @@
                     const d = await api('/api/expenses', v);
                     EXPENSES.push(d.expense);
                     try { localStorage.setItem('fmeLastMethod', v.payment); } catch {}
+                    rememberCurrency(v.currency);
                     showDone(d.expense, false);
                 }
                 renderAll();
@@ -1659,6 +1661,39 @@
 
 
 
+
+
+        // ---------- currencies ----------
+        const ALL_CURRENCIES = 'AED,AFN,ALL,AMD,ANG,AOA,ARS,AUD,AWG,AZN,BAM,BBD,BDT,BGN,BHD,BIF,BMD,BND,BOB,BRL,BSD,BTN,BWP,BYN,BZD,CAD,CDF,CHF,CLP,CNH,CNY,COP,CRC,CUP,CVE,CZK,DJF,DKK,DOP,DZD,EGP,ERN,ETB,EUR,FJD,FKP,FOK,GBP,GEL,GGP,GHS,GIP,GMD,GNF,GTQ,GYD,HKD,HNL,HRK,HTG,HUF,IDR,ILS,IMP,INR,IQD,IRR,ISK,JEP,JMD,JOD,JPY,KES,KGS,KHR,KID,KMF,KRW,KWD,KYD,KZT,LAK,LBP,LKR,LRD,LSL,LYD,MAD,MDL,MGA,MKD,MMK,MNT,MOP,MRU,MUR,MVR,MWK,MXN,MYR,MZN,NAD,NGN,NIO,NOK,NPR,NZD,OMR,PAB,PEN,PGK,PHP,PKR,PLN,PYG,QAR,RON,RSD,RUB,RWF,SAR,SBD,SCR,SDG,SEK,SGD,SHP,SLE,SLL,SOS,SRD,SSP,STN,SYP,SZL,THB,TJS,TMT,TND,TOP,TRY,TTD,TVD,TWD,TZS,UAH,UGX,USD,UYU,UZS,VES,VND,VUV,WST,XAF,XCD,XCG,XOF,XPF,YER,ZAR,ZMW,ZWG,ZWL'.split(',');
+        const COMMON_CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'THB', 'IDR', 'MYR', 'CAD', 'AUD', 'NZD', 'JPY', 'CHF', 'VND', 'LKR', 'NPR', 'HKD', 'SAR', 'QAR'];
+        const curNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'currency' }); } catch { return null; } })();
+        function curName(c) { try { const n = curNames && curNames.of(c); return n && n !== c ? n.charAt(0).toUpperCase() + n.slice(1) : ''; } catch { return ''; } }
+        function recentCurrencies() { try { return JSON.parse(localStorage.getItem('fmeRecentCur') || '[]').filter(c => ALL_CURRENCIES.includes(c)); } catch { return []; } }
+        function rememberCurrency(c) {
+            try { localStorage.setItem('fmeRecentCur', JSON.stringify([c, ...recentCurrencies().filter(x => x !== c)].slice(0, 5))); } catch {}
+        }
+        function buildCurrencySelect(selected) {
+            const sel = document.getElementById('fCurrency');
+            selected = selected || sel.value || 'INR';
+            const recent = recentCurrencies();
+            const used = [...new Set(EXPENSES.map(e => e.currency))].filter(c => ALL_CURRENCIES.includes(c));
+            const top = [...new Set([...recent, ...used])].slice(0, 6);
+            const opt = c => '<option value="' + c + '" data-full="' + c + (curName(c) ? ' · ' + esc(curName(c)) : '') + '">' + c + '</option>';
+            sel.innerHTML =
+                (top.length ? '<optgroup label="Recently used">' + top.map(opt).join('') + '</optgroup>' : '') +
+                '<optgroup label="Common">' + COMMON_CURRENCIES.filter(c => !top.includes(c)).map(opt).join('') + '</optgroup>' +
+                '<optgroup label="All currencies">' + ALL_CURRENCIES.filter(c => !top.includes(c) && !COMMON_CURRENCIES.includes(c)).map(opt).join('') + '</optgroup>';
+            sel.value = ALL_CURRENCIES.includes(selected) ? selected : 'INR';
+        }
+        // full names while the list is open, just the code once chosen (keeps the amount box tidy)
+        function currencyLabels(full) {
+            document.querySelectorAll('#fCurrency option').forEach(o => { o.textContent = full ? o.dataset.full : o.value; });
+        }
+        function currencyPicked() { currencyLabels(false); renderSplit(); }
+        function setCurrency(c) {
+            const sel = document.getElementById('fCurrency');
+            if (!sel.querySelector('option[value="' + c + '"]')) buildCurrencySelect(c); else sel.value = c;
+        }
 
         // ---------- split the bill ----------
         let splitN = 1;
@@ -1744,7 +1779,7 @@
         function applyScan(f) {
             const mark = id => { const el = document.getElementById(id); el.classList.remove('filled'); void el.offsetWidth; el.classList.add('filled'); };
             if (f.amount) { document.getElementById('fAmount').value = f.amount; mark('fAmount'); }
-            if (f.currency) document.getElementById('fCurrency').value = f.currency;
+            if (f.currency) setCurrency(f.currency);
             if (f.date) { document.getElementById('fDate').value = f.date; mark('fDate'); }
             if (f.category) { buildChips(f.category); mark('fCategoryChips'); }
             if (f.payment) { document.getElementById('fPayment').value = f.payment; mark('fPayment'); }

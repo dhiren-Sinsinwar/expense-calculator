@@ -470,10 +470,10 @@ setInterval(() => { cleanupReceipts(); saveDb(); }, 3600e3).unref();
 
 const RECEIPT_PROMPT = `You read photos of receipts, bills, invoices and payment screenshots (often Indian: GST bills, restaurant bills, fuel slips, UPI/app payment confirmations).
 Return ONLY a JSON object, no other text:
-{"is_receipt": true|false, "amount": number|null, "currency": "INR"|"USD"|"EUR"|"GBP"|"AED"|"SGD"|"THB"|"JPY"|null, "date": "YYYY-MM-DD"|null, "merchant": string|null, "category": one of ${JSON.stringify(CATEGORY_LIST)}, "payment": "Credit Card"|"Direct Bank Transfer"|"UPI"|"Cash"|"Other"|null, "description": string|null}
+{"is_receipt": true|false, "amount": number|null, "currency": 3-letter ISO 4217 code such as "INR", "USD", "EUR", "GBP", "AED", "SGD", "THB", "IDR", "CAD", "AUD", "MYR", "VND", "LKR" or null, "date": "YYYY-MM-DD"|null, "merchant": string|null, "category": one of ${JSON.stringify(CATEGORY_LIST)}, "payment": "Credit Card"|"Direct Bank Transfer"|"UPI"|"Cash"|"Other"|null, "description": string|null}
 Rules:
 - amount = the final total actually paid (grand total / net payable / amount paid, including taxes, after discounts). Never a subtotal, item price, GST line, change returned or "you saved".
-- currency: from the symbol or text; ₹ / Rs / INR -> "INR". If none is shown and it looks Indian, "INR".
+- currency: from the symbol, text, country or address on the receipt; ₹ / Rs / INR -> "INR", Rp -> "IDR", RM -> "MYR", C$ / CA$ -> "CAD", A$ -> "AUD", S$ -> "SGD", ฿ -> "THB", ₫ -> "VND". A bare "$" means the local currency of the country shown. If nothing indicates otherwise and it looks Indian, "INR".
 - date: the transaction date. Indian receipts are usually DD/MM/YY. If no date is visible, null.
 - merchant: the shop/restaurant/company name, cleaned up (e.g. "Starbucks", "Big Basket", "Indian Oil"). Max 40 characters.
 - payment: only if the receipt says how it was paid. Any card (credit or debit) -> "Credit Card"; UPI/GPay/PhonePe/Paytm UPI -> "UPI"; NEFT/IMPS/net banking -> "Direct Bank Transfer"; cash -> "Cash". Otherwise null.
@@ -608,7 +608,8 @@ function bindReceipt(u, e, receiptId) {
 }
 
 // ---- expenses (shared by the whole household) ----
-const CURRENCIES = new Set(['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'THB', 'JPY']);
+// Every currency the live exchange-rate feed (open.er-api.com) supports
+const CURRENCIES = new Set('AED,AFN,ALL,AMD,ANG,AOA,ARS,AUD,AWG,AZN,BAM,BBD,BDT,BGN,BHD,BIF,BMD,BND,BOB,BRL,BSD,BTN,BWP,BYN,BZD,CAD,CDF,CHF,CLP,CNH,CNY,COP,CRC,CUP,CVE,CZK,DJF,DKK,DOP,DZD,EGP,ERN,ETB,EUR,FJD,FKP,FOK,GBP,GEL,GGP,GHS,GIP,GMD,GNF,GTQ,GYD,HKD,HNL,HRK,HTG,HUF,IDR,ILS,IMP,INR,IQD,IRR,ISK,JEP,JMD,JOD,JPY,KES,KGS,KHR,KID,KMF,KRW,KWD,KYD,KZT,LAK,LBP,LKR,LRD,LSL,LYD,MAD,MDL,MGA,MKD,MMK,MNT,MOP,MRU,MUR,MVR,MWK,MXN,MYR,MZN,NAD,NGN,NIO,NOK,NPR,NZD,OMR,PAB,PEN,PGK,PHP,PKR,PLN,PYG,QAR,RON,RSD,RUB,RWF,SAR,SBD,SCR,SDG,SEK,SGD,SHP,SLE,SLL,SOS,SRD,SSP,STN,SYP,SZL,THB,TJS,TMT,TND,TOP,TRY,TTD,TVD,TWD,TZS,UAH,UGX,USD,UYU,UZS,VES,VND,VUV,WST,XAF,XCD,XCG,XOF,XPF,YER,ZAR,ZMW,ZWG,ZWL'.split(','));
 const METHODS = ['Credit Card', 'Direct Bank Transfer', 'UPI', 'Cash', 'Other'];
 // Map anything typed before the dropdown existed (e.g. "HDFC card", "Kotak account") onto the fixed list
 function toMethod(v) {
