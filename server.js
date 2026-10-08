@@ -69,7 +69,7 @@ const PERSISTENT = DATA_DIR === '/data' || !!process.env.DATA_DIR;
 let db = { users: [], secret: null };
 try { db = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { /* first run */ }
 if (!db.secret) db.secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-db.users = db.users || []; db.households = db.households || []; db.expenses = db.expenses || []; db.invites = db.invites || []; db.receipts = db.receipts || [];
+db.users = db.users || []; db.households = db.households || []; db.expenses = db.expenses || []; db.invites = db.invites || []; db.receipts = db.receipts || []; db.groups = db.groups || []; db.groupExpenses = db.groupExpenses || []; db.groupInvites = db.groupInvites || [];
 function saveDb() {
   const tmp = USERS_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
@@ -590,7 +590,9 @@ app.get('/api/receipts/:id', (req, res) => {
   const u = requireUser(req, res); if (!u) return;
   const r = db.receipts.find(x => x.id === req.params.id);
   const e = r && r.expenseId && db.expenses.find(x => x.id === r.expenseId);
-  const ok = r && (e ? e.householdId === u.householdId : r.userId === u.id);
+  const ge = r && r.expenseId && !e && db.groupExpenses.find(x => x.id === r.expenseId);
+  const g = ge && db.groups.find(x => x.id === ge.groupId);
+  const ok = r && (e ? e.householdId === u.householdId : g ? g.members.includes(u.id) : r.userId === u.id);
   if (!ok || !fs.existsSync(receiptPath(r.id))) return res.status(404).json({ error: 'Receipt not found.' });
   res.set('Cache-Control', 'private, max-age=86400').type('image/jpeg').sendFile(receiptPath(r.id));
 });
@@ -701,6 +703,175 @@ app.delete('/api/expenses/:id', (req, res) => {
   if (e.userId !== u.id && h.ownerId !== u.id) return res.status(403).json({ error: 'Only the person who added it (or the household owner) can delete this.' });
   if (e.receiptId) dropReceipt(e.receiptId);
   db.expenses = db.expenses.filter(x => x !== e); saveDb(); res.json({ ok: true });
+});
+
+
+// ================= TRAVEL GROUPS =================
+// Separate from daily / household expenses: group expenses live in db.groupExpenses and never count in daily totals.
+const MAX_GROUP_MEMBERS = 30, MAX_GROUPS_PER_USER = 50;
+const groupOf = id => db.groups.find(g => g.id === id);
+function myGroup(req, res, u) {
+  const g = groupOf(req.params.id);
+  if (!g || !g.members.includes(u.id)) { res.status(404).json({ error: 'Group not found.' }); return null; }
+  return g;
+}
+function groupInvitesFor(u) {
+  return db.groupInvites.filter(i => i.status === 'pending' && ((i.phone && i.phone === u.phone) || (i.email && i.email === u.email)))
+    .filter(i => { const g = groupOf(i.groupId); return g && !g.members.includes(u.id); });
+}
+function groupTotals(gid) {
+  const t = {}; let count = 0, last = '';
+  db.groupExpenses.forEach(e => { if (e.groupId !== gid) return; t[e.currency] = Math.round(((t[e.currency] || 0) + e.amount) * 100) / 100; count++; if (e.date > last) last = e.date; });
+  return { totals: t, count, lastDate: last || null };
+}
+function groupSummary(g, u) {
+  return { id: g.id, name: g.name, isOwner: g.ownerId === u.id, createdAt: g.createdAt, ...groupTotals(g.id),
+    members: g.members.map(id => db.users.find(x => x.id === id)).filter(Boolean).map(m => ({ id: m.id, name: m.name, you: m.id === u.id })) };
+}
+function groupDetail(g, u) {
+  const people = g.members.map(id => db.users.find(x => x.id === id)).filter(Boolean);
+  const formerIds = [...new Set(db.groupExpenses.filter(e => e.groupId === g.id && !g.members.includes(e.userId)).map(e => e.userId))];
+  return {
+    group: { id: g.id, name: g.name, isOwner: g.ownerId === u.id, createdAt: g.createdAt },
+    members: people.map(m => ({ id: m.id, name: m.name, email: m.id === u.id ? m.email : '', phone: m.id === u.id ? m.phone : maskPhone(m.phone), role: m.id === g.ownerId ? 'owner' : 'member', you: m.id === u.id })),
+    former: formerIds.map(id => { const m = db.users.find(x => x.id === id); return { id, name: m ? m.name : 'Former member', former: true }; }),
+    pending: db.groupInvites.filter(i => i.groupId === g.id && i.status === 'pending').map(i => ({ id: i.id, to: i.phone ? '+91 ' + i.phone : i.email, createdAt: i.createdAt, canCancel: i.invitedBy === u.id || g.ownerId === u.id })),
+    expenses: db.groupExpenses.filter(e => e.groupId === g.id).map(expenseOut),
+  };
+}
+function leaveGroup(g, uid) {
+  g.members = g.members.filter(id => id !== uid);
+  if (!g.members.length) {      // last person out: the group and its expenses go
+    db.groupExpenses.filter(e => e.groupId === g.id).forEach(e => e.receiptId && dropReceipt(e.receiptId));
+    db.groupExpenses = db.groupExpenses.filter(e => e.groupId !== g.id);
+    db.groupInvites = db.groupInvites.filter(i => i.groupId !== g.id);
+    db.groups = db.groups.filter(x => x !== g);
+  } else if (g.ownerId === uid) g.ownerId = g.members[0];
+}
+
+app.get('/api/groups', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  res.json({
+    groups: db.groups.filter(g => g.members.includes(u.id)).map(g => groupSummary(g, u)),
+    incoming: groupInvitesFor(u).map(i => { const g = groupOf(i.groupId), by = db.users.find(x => x.id === i.invitedBy);
+      return { id: i.id, group: g.name, from: by ? by.name : 'Someone', members: g.members.length }; }),
+  });
+});
+
+app.post('/api/groups', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const name = String((req.body && req.body.name) || '').trim().slice(0, 50);
+  if (name.length < 2) return res.status(400).json({ error: 'Give the group a name, like “Goa trip”.' });
+  if (db.groups.filter(g => g.members.includes(u.id)).length >= MAX_GROUPS_PER_USER) return res.status(400).json({ error: 'You’re in a lot of groups already. Leave some old ones first.' });
+  const g = { id: crypto.randomUUID(), name, ownerId: u.id, members: [u.id], createdAt: new Date().toISOString() };
+  db.groups.push(g); saveDb();
+  res.json(groupDetail(g, u));
+});
+
+app.get('/api/groups/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (g) res.json(groupDetail(g, u));
+});
+
+app.patch('/api/groups/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (!g) return;
+  if (g.ownerId !== u.id) return res.status(403).json({ error: 'Only the person who created the group can rename it.' });
+  const name = String((req.body && req.body.name) || '').trim().slice(0, 50);
+  if (name.length < 2) return res.status(400).json({ error: 'Enter a group name.' });
+  g.name = name; saveDb(); res.json(groupDetail(g, u));
+});
+
+app.delete('/api/groups/:id', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (!g) return;
+  if (g.ownerId !== u.id) return res.status(403).json({ error: 'Only the person who created the group can delete it.' });
+  g.members = [u.id]; leaveGroup(g, u.id); saveDb(); res.json({ ok: true });
+});
+
+app.post('/api/groups/:id/invite', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (!g) return;
+  const raw = String((req.body && req.body.identifier) || '').trim();
+  const phone = normalizePhone(raw);
+  const email = !phone && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw) ? raw.toLowerCase() : null;
+  if (!phone && !email) return res.status(400).json({ error: 'Enter a 10-digit mobile number or an email address.' });
+  if ((phone && phone === u.phone) || (email && email === u.email)) return res.status(400).json({ error: 'That’s you.' });
+  const existing = phone ? findByPhone(phone) : findByEmail(email);
+  if (existing && g.members.includes(existing.id)) return res.status(409).json({ error: (existing.name || 'This person') + ' is already in this group.' });
+  if (g.members.length >= MAX_GROUP_MEMBERS) return res.status(400).json({ error: 'A group can have up to ' + MAX_GROUP_MEMBERS + ' people.' });
+  if (db.groupInvites.filter(i => i.groupId === g.id && i.status === 'pending').length >= 40) return res.status(400).json({ error: 'Too many pending invites. Cancel some first.' });
+  const dup = db.groupInvites.find(i => i.groupId === g.id && i.status === 'pending' && ((phone && i.phone === phone) || (email && i.email === email)));
+  if (!dup) db.groupInvites.push({ id: crypto.randomUUID(), groupId: g.id, phone, email, invitedBy: u.id, status: 'pending', createdAt: new Date().toISOString() });
+  saveDb();
+  res.json({ ...groupDetail(g, u), invitedHasAccount: !!existing });
+});
+
+app.delete('/api/groups/:id/invite/:inviteId', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (!g) return;
+  const i = db.groupInvites.find(x => x.id === req.params.inviteId && x.groupId === g.id && x.status === 'pending');
+  if (!i) return res.status(404).json({ error: 'Invite not found.' });
+  if (i.invitedBy !== u.id && g.ownerId !== u.id) return res.status(403).json({ error: 'Only the person who sent the invite (or the group creator) can cancel it.' });
+  i.status = 'cancelled'; saveDb(); res.json(groupDetail(g, u));
+});
+
+app.post('/api/group-invites/:id/:action', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const i = groupInvitesFor(u).find(x => x.id === req.params.id);
+  if (!i) return res.status(404).json({ error: 'This invite is no longer available.' });
+  const g = groupOf(i.groupId);
+  if (req.params.action === 'decline') { i.status = 'declined'; saveDb(); return res.json({ ok: true }); }
+  if (req.params.action !== 'accept') return res.status(400).json({ error: 'Unknown action' });
+  if (g.members.length >= MAX_GROUP_MEMBERS) return res.status(400).json({ error: 'That group is full.' });
+  g.members.push(u.id); i.status = 'accepted';
+  db.groupInvites.forEach(x => { if (x !== i && x.groupId === g.id && x.status === 'pending' && ((x.phone && x.phone === u.phone) || (x.email && x.email === u.email))) x.status = 'superseded'; });
+  saveDb(); res.json(groupDetail(g, u));
+});
+
+app.post('/api/groups/:id/leave', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (!g) return;
+  leaveGroup(g, u.id); saveDb(); res.json({ ok: true });
+});
+
+app.delete('/api/groups/:id/members/:uid', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (!g) return;
+  if (g.ownerId !== u.id) return res.status(403).json({ error: 'Only the person who created the group can remove people.' });
+  if (req.params.uid === u.id || !g.members.includes(req.params.uid)) return res.status(404).json({ error: 'Member not found.' });
+  leaveGroup(g, req.params.uid); saveDb(); res.json(groupDetail(g, u));
+});
+
+// group expenses (same fields as daily expenses)
+app.post('/api/groups/:id/expenses', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const g = myGroup(req, res, u); if (!g) return;
+  const c = cleanExpense(req.body || {}); if (c.error) return res.status(400).json({ error: c.error });
+  const e = { id: crypto.randomUUID(), groupId: g.id, userId: u.id, ...c.value, createdAt: new Date().toISOString() };
+  const err = bindReceipt(u, e, req.body.receiptId); if (err) return res.status(400).json({ error: err });
+  db.groupExpenses.push(e); saveDb(); res.json({ expense: expenseOut(e) });
+});
+function groupExpense(req, res, u) {
+  const g = myGroup(req, res, u); if (!g) return null;
+  const e = db.groupExpenses.find(x => x.id === req.params.eid && x.groupId === g.id);
+  if (!e) { res.status(404).json({ error: 'Expense not found.' }); return null; }
+  if (e.userId !== u.id && g.ownerId !== u.id) { res.status(403).json({ error: 'Only the person who added it (or the group creator) can change this.' }); return null; }
+  return e;
+}
+app.patch('/api/groups/:id/expenses/:eid', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const e = groupExpense(req, res, u); if (!e) return;
+  const c = cleanExpense(req.body || {}); if (c.error) return res.status(400).json({ error: c.error });
+  const err = bindReceipt(u, e, req.body.receiptId); if (err) return res.status(400).json({ error: err });
+  Object.assign(e, c.value, { updatedAt: new Date().toISOString() });
+  saveDb(); res.json({ expense: expenseOut(e) });
+});
+app.delete('/api/groups/:id/expenses/:eid', (req, res) => {
+  const u = requireUser(req, res); if (!u) return;
+  const e = groupExpense(req, res, u); if (!e) return;
+  if (e.receiptId) dropReceipt(e.receiptId);
+  db.groupExpenses = db.groupExpenses.filter(x => x !== e); saveDb(); res.json({ ok: true });
 });
 
 // Any error inside an /api route comes back as JSON (never an HTML error page)

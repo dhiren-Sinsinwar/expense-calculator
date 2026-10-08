@@ -738,7 +738,7 @@
         .split-result { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-ink); font-size: 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
         .split-result b { font-size: 20px; font-variant-numeric: tabular-nums; color: var(--ink); }
         .split-result span { color: var(--ink-2); }
-        .row-amt small.split { color: var(--brand-ink); }
+        .row-amt small.split-note { color: var(--brand-ink); }
 
         /* ===== refresh ===== */
         .refresh-btn { padding: 10px 14px; }
@@ -772,6 +772,50 @@
         @media (max-width: 860px) {
             #currencyModal { align-items: flex-end; }
             .cur-sheet { width: 100%; max-height: 88vh; border-radius: 18px 18px 0 0 !important; padding-bottom: calc(8px + env(safe-area-inset-bottom)) !important; }
+        }
+
+        /* ===== travel groups ===== */
+        .new-group .invite-row { margin-top: 14px; }
+        .new-group .form-msg { margin-top: 8px; display: block; }
+        .grp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+        .grp-card { display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; cursor: pointer; font: inherit; color: var(--ink); width: 100%; }
+        .grp-card:hover { border-color: #C9D0C8; box-shadow: 0 2px 12px rgba(22,32,26,.06); }
+        .grp-ic { width: 44px; height: 44px; border-radius: 12px; background: #2D78AE1A; color: #2D78AE; display: grid; place-items: center; }
+        .grp-ic .ic { width: 20px; height: 20px; }
+        .grp-main { min-width: 0; }
+        .grp-name { font-weight: 600; font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .grp-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+        .grp-avs { display: flex; margin-top: 8px; }
+        .grp-avs .mini-av { width: 22px; height: 22px; font-size: 9px; border: 2px solid var(--surface); margin-left: -6px; box-sizing: content-box; }
+        .grp-avs .mini-av:first-child { margin-left: 0; }
+        .grp-amt { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 16px; white-space: nowrap; }
+        .grp-amt small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+        .back-link { display: inline-flex; align-items: center; gap: 4px; margin: -6px 0 14px; }
+        .back-link .ic { width: 16px; height: 16px; transform: rotate(90deg); }
+        .section-head .muted { font-size: 12.5px; }
+        .cat-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+        .cat-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); cursor: pointer; font: inherit; font-size: 13.5px; color: var(--ink-2); }
+        .cat-chip.all { padding-left: 12px; }
+        .cat-chip .cat-ic { width: 26px; height: 26px; border-radius: 50%; }
+        .cat-chip .cat-ic .ic { width: 14px; height: 14px; }
+        .cat-chip b { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+        .cat-chip:hover { border-color: #C9D0C8; }
+        .cat-chip.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: #F6F8F5; color: var(--ink); }
+        button.person { background: none; border: 1px solid transparent; border-radius: 999px; padding: 3px 10px 3px 3px; font: inherit; color: inherit; cursor: pointer; }
+        button.person:hover { background: #F6F8F5; }
+        button.person.on { border-color: var(--ink); background: #F6F8F5; }
+        .g-toolbar { grid-template-columns: minmax(200px, 1fr) 200px auto; }
+        .target-note { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #1F4E70; background: #2D78AE14; border: 1px solid #2D78AE33; border-radius: 10px; padding: 10px 12px; margin-bottom: 18px; }
+        .target-note .ic { width: 16px; height: 16px; color: #2D78AE; flex-shrink: 0; }
+        .member.former { opacity: .6; }
+        .g-add { width: 100%; margin-top: 16px; padding: 13px; }
+        .nav-menu .lbl-short { display: none; }
+        @media (max-width: 860px) { .nav-menu .lbl-full { display: none; } .nav-menu .lbl-short { display: inline; } .nav-menu button span { white-space: nowrap; } }
+        @media (max-width: 860px) {
+            .grp-cards { grid-template-columns: 1fr; }
+            .g-toolbar { grid-template-columns: 1fr auto; }
+            .g-toolbar .search { grid-column: 1 / -1; }
+            .nav-menu button { font-size: 10px; padding: 6px 2px; }
         }
     </style>
 </head>
@@ -981,9 +1025,10 @@
             </div>
             <nav class="nav-menu">
                 <button data-page="dashboard" onclick="showPage('dashboard')"><svg class="ic"><use href="#i-home"/></svg><span>Overview</span></button>
-                <button data-page="add" onclick="showPage('add')"><svg class="ic"><use href="#i-plus"/></svg><span>Add expense</span></button>
+                <button data-page="add" onclick="showPage('add')"><svg class="ic"><use href="#i-plus"/></svg><span class="lbl-full">Add expense</span><span class="lbl-short">Add</span></button>
                 <button data-page="expenses" onclick="showPage('expenses')"><svg class="ic"><use href="#i-receipt"/></svg><span>Expenses</span></button>
                 <button data-page="analytics" onclick="showPage('analytics')"><svg class="ic"><use href="#i-chart"/></svg><span>Analytics</span></button>
+                <button data-page="groups" onclick="openGroups()"><svg class="ic"><use href="#c-travel"/></svg><span>Groups</span></button>
                 <button data-page="household" onclick="showPage('household')"><svg class="ic"><use href="#i-users"/></svg><span>Household</span></button>
             </nav>
             <div class="me">
@@ -1010,13 +1055,14 @@
                 <div class="topbar-actions">
                     <label class="scope" id="scopeWrap" hidden><svg class="ic"><use href="#i-users"/></svg><select id="scopeUser" onchange="renderAll()" aria-label="Whose expenses"></select></label>
                     <button class="btn btn-quiet refresh-btn" id="refreshBtn" onclick="refreshData(true)" aria-label="Refresh" title="Get the latest expenses"><svg class="ic"><use href="#i-refresh"/></svg><span class="rf-label">Refresh</span></button>
-                    <button class="btn btn-solid" id="topAdd" onclick="showPage('add')"><svg class="ic"><use href="#i-plus"/></svg>Add expense</button>
+                    <button class="btn btn-solid" id="topAdd" onclick="topAddClick()"><svg class="ic"><use href="#i-plus"/></svg>Add expense</button>
                     <button class="icon-btn only-mobile" onclick="openAccount()" aria-label="Account"><svg class="ic"><use href="#i-user"/></svg></button>
                 </div>
             </header>
 
             <section class="view active" id="page-dashboard">
                 <div id="incomingInvites"></div>
+                <div id="groupInvites"></div>
                 <div class="install-banner" id="installBanner" hidden>
                     <img src="/icons/icon-192.png" alt="">
                     <div class="ib-text"><strong>Add to your home screen</strong><span>Open your expenses in one tap, full screen.</span></div>
@@ -1051,6 +1097,7 @@
             <section class="view" id="page-add">
                 <div class="panel form-panel" id="addForm">
                     <div class="editing-note" id="editNote" hidden><svg class="ic"><use href="#i-edit"/></svg><span id="editNoteText"></span></div>
+                    <div class="target-note" id="targetNote" hidden><svg class="ic"><use href="#c-travel"/></svg><span id="targetText"></span></div>
                     <div class="scan" id="scanBox" hidden>
                         <div class="scan-idle" id="scanIdle">
                             <div class="scan-text"><strong><svg class="ic"><use href="#i-sparkle"/></svg>Scan a receipt</strong><span>Take a photo and we’ll fill in the details for you</span><span class="scan-note" id="scanNote"></span></div>
@@ -1105,7 +1152,7 @@
                     <div id="doneAsk">
                         <p class="done-q">Want to submit another expense?</p>
                         <div class="done-acts">
-                            <button class="btn btn-quiet" onclick="afterSubmit(false)">No, show my expenses</button>
+                            <button class="btn btn-quiet" id="doneNo" onclick="afterSubmit(false)">No, show my expenses</button>
                             <button class="btn btn-solid" id="doneYes" onclick="afterSubmit(true)">Yes, add another</button>
                         </div>
                     </div>
@@ -1152,6 +1199,79 @@
                     </div>
                 </div>
                 <p class="muted fx-note" id="fxNote"></p>
+            </section>
+
+            <section class="view" id="page-groups">
+                <div id="grpListView">
+                    <div id="groupInvites2"></div>
+                    <div class="panel new-group">
+                        <h2>New travel group</h2>
+                        <p class="muted">For a trip or outing with friends or family. Expenses added to a group stay in that group and don’t count in your daily expenses.</p>
+                        <div class="invite-row">
+                            <input id="ngName" type="text" maxlength="50" placeholder="Name it, e.g. Goa trip or Bali 2026" onkeydown="if(event.key==='Enter')createGroup()">
+                            <button class="btn btn-solid" onclick="createGroup()"><svg class="ic"><use href="#i-plus"/></svg>Create group</button>
+                        </div>
+                        <div class="form-msg" id="ngMsg" role="status"></div>
+                    </div>
+                    <div class="section-head"><h2>Your groups</h2></div>
+                    <div class="grp-cards" id="grpCards"></div>
+                </div>
+
+                <div id="grpDetailView" hidden>
+                    <button class="link-btn back-link" onclick="closeGroup()"><svg class="ic"><use href="#i-down"/></svg>All groups</button>
+                    <div class="hero-panel">
+                        <div class="hero-top">
+                            <div>
+                                <div class="hero-label" id="gHeroLabel">Group total</div>
+                                <div class="hero-amount" id="gTotal">₹0</div>
+                                <div class="hero-delta" id="gHeroSub"></div>
+                            </div>
+                            <dl class="hero-facts">
+                                <div><dt>People</dt><dd id="gFactPeople">1</dd></div>
+                                <div><dt>Per person</dt><dd id="gFactPer">₹0</dd></div>
+                                <div><dt>You added</dt><dd id="gFactMine">₹0</dd></div>
+                            </dl>
+                        </div>
+                        <div class="people" id="gPeople"></div>
+                        <button class="btn btn-solid only-mobile-flex g-add" onclick="startGroupAdd()"><svg class="ic"><use href="#i-plus"/></svg>Add expense to this group</button>
+                    </div>
+
+                    <div class="section-head"><h2>Where it’s going</h2><span class="muted" id="gCatHint">Tap a category to filter</span></div>
+                    <div class="cat-filter" id="gCats"></div>
+
+                    <div class="toolbar g-toolbar">
+                        <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="gSearch" type="search" placeholder="Search description" oninput="gFilter.q=this.value;renderGroupDetail()"></label>
+                        <select id="gPerson" onchange="gFilter.person=this.value;renderGroupDetail()" aria-label="Who added it"></select>
+                        <button class="btn btn-quiet" onclick="exportGroupCSV()"><svg class="ic"><use href="#i-download"/></svg>Export CSV</button>
+                    </div>
+                    <div class="filter-sum" id="gSum"></div>
+                    <div class="ledger" id="gList"></div>
+
+                    <div class="an-grid" style="margin-top:28px;">
+                        <div class="panel">
+                            <div class="hh-head">
+                                <div><h2>People in this group</h2><p class="muted" id="gMeta"></p></div>
+                                <button class="link-btn" id="gRenameBtn" onclick="renameGroup()" hidden>Rename group</button>
+                            </div>
+                            <div class="members" id="gMembers"></div>
+                            <div class="hh-foot" id="gFoot"></div>
+                        </div>
+                        <div class="panel">
+                            <h2>Add people</h2>
+                            <p class="muted">Anyone in the group can add people. They log in with their own account and add expenses here too.</p>
+                            <div class="field" style="margin-top:16px;">
+                                <label class="lbl" for="gInvite">Mobile number or email</label>
+                                <div class="invite-row">
+                                    <input id="gInvite" type="text" placeholder="98xxxxxxxx or name@example.com" onkeydown="if(event.key==='Enter')sendGroupInvite()">
+                                    <button class="btn btn-solid" onclick="sendGroupInvite()"><svg class="ic"><use href="#i-send"/></svg>Add</button>
+                                </div>
+                            </div>
+                            <div class="form-msg" id="gMsg" role="status"></div>
+                            <div id="gShare"></div>
+                            <div id="gPending"></div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section class="view" id="page-household">
@@ -1423,10 +1543,11 @@
             renderAll();
             fetchRates();
             migrateLocal(user).then(loadData);
+            loadGroups();
         }
         function logout() {
             localStorage.removeItem('fmeSession');
-            EXPENSES = []; HH = null; ME = null; loaded = false;
+            EXPENSES = []; HH = null; ME = null; loaded = false; GROUPS = []; GROUP_INV = []; GROUP = null;
             document.getElementById('landing').classList.remove('hide');
             document.getElementById('dashboard').classList.remove('show');
         }
@@ -1531,7 +1652,7 @@
         async function refreshData(manual) {
             const btn = document.getElementById('refreshBtn'), lbl = btn.querySelector('.rf-label');
             if (manual) { btn.classList.remove('done'); btn.classList.add('spinning'); btn.disabled = true; }
-            const ok = await loadData();
+            const [ok] = await Promise.all([loadData(), currentPage === 'groups' && GROUP ? reloadGroup() : loadGroups()]);
             if (manual) {
                 btn.classList.remove('spinning'); btn.disabled = false;
                 btn.classList.add('done'); lbl.textContent = ok ? 'Updated' : 'Offline';
@@ -1614,8 +1735,18 @@
         function openEdit(id) {
             const e = EXPENSES.find(x => x.id === id);
             if (!e || !canDelete(e)) return;
+            fillEdit(e, memberById);
+        }
+        function openGroupEdit(id) {
+            const e = GROUP && GROUP.expenses.find(x => x.id === id);
+            if (!e || !gCan(e)) return;
+            const gid = GROUP.group.id;
+            fillEdit(e, gMember);
+            setTarget(gid);
+        }
+        function fillEdit(e, memberFn) {
             showPage('add');            // resets any previous state first
-            editingId = id;
+            editingId = e.id;
             document.getElementById('fAmount').value = e.splitWays > 1 && e.billTotal ? Math.abs(e.billTotal) : Math.abs(e.amount);
             setSplit(e.splitWays > 1 ? e.splitWays : 1);
             setCurrency(e.currency);
@@ -1625,14 +1756,14 @@
             document.getElementById('fNote').value = e.note || '';
             document.getElementById('saveBtn').textContent = 'Save changes';
             document.getElementById('cancelEdit').hidden = false;
-            const who = e.userId === (ME && ME.id) ? '' : ' added by ' + memberById(e.userId).name.split(' ')[0];
+            const who = e.userId === (ME && ME.id) ? '' : ' added by ' + memberFn(e.userId).name.split(' ')[0];
             document.getElementById('editNoteText').textContent = 'Editing an expense' + who + ' from ' + dayLabel(e.date);
             document.getElementById('editNote').hidden = false;
             if (e.receiptId) showExistingReceipt(e.receiptId); else { clearReceipt(); }
             document.getElementById('pageTitle').textContent = 'Edit expense';
             document.getElementById('pageSubtitle').textContent = 'Change any detail, then save';
         }
-        function cancelEdit() { resetForm(); showPage('expenses'); }
+        function cancelEdit() { const t = formTarget; resetForm(); showPage(t && GROUP ? 'groups' : 'expenses'); }
 
         function showDone(e, edited) {
             document.getElementById('addForm').hidden = true;
@@ -1640,19 +1771,24 @@
             document.getElementById('doneTitle').textContent = edited ? 'Changes saved' : 'Expense submitted';
             document.getElementById('doneSummary').innerHTML = catIcon(e.category) +
                 '<div><div class="row-title">' + (esc(e.note) || esc(e.category)) + '</div><div class="row-sub">' +
-                esc([e.category, dayLabel(e.date)].join(', ')) + (multi() && !edited ? ', shared with ' + esc(HH.household.name) : '') +
+                esc([e.category, dayLabel(e.date)].join(', ')) + (formTarget ? ', in ' + esc(gName()) : multi() && !edited ? ', shared with ' + esc(HH.household.name) : '') +
                 (e.splitWays > 1 && e.billTotal ? '<br>Your share of ' + esc(fmt(e.billTotal, e.currency)) + ', split ' + e.splitWays + ' ways' : '') + '</div></div>' +
                 '<span class="amt">' + fmt(e.amount, e.currency) + '</span>' +
                 (e.receiptId ? '<button class="row-edit" style="opacity:1" onclick="openReceipt(\'' + e.receiptId + '\')" aria-label="View receipt" title="View receipt"><svg class="ic"><use href="#i-clip"/></svg></button>' : '');
             document.getElementById('doneAsk').hidden = edited;
             document.getElementById('doneEdited').hidden = !edited;
             document.getElementById('pageTitle').textContent = edited ? 'Expense updated' : 'Expense submitted';
-            document.getElementById('pageSubtitle').textContent = edited ? 'Your changes are saved' + (multi() ? ' for everyone in the household' : '') : 'It’s in your expenses' + (multi() ? ' and visible to your household' : '');
+            document.getElementById('pageSubtitle').textContent = formTarget
+                ? (edited ? 'Your changes are saved for everyone in ' + gName() : 'It’s in ' + gName() + ', separate from your daily expenses')
+                : edited ? 'Your changes are saved' + (multi() ? ' for everyone in the household' : '') : 'It’s in your expenses' + (multi() ? ' and visible to your household' : '');
+            document.getElementById('doneNo').textContent = formTarget ? 'No, back to the group' : 'No, show my expenses';
+            document.querySelector('#doneEdited .btn').textContent = formTarget ? 'Back to the group' : 'Back to expenses';
             setTimeout(() => (edited ? document.querySelector('#doneEdited .btn') : document.getElementById('doneYes')).focus(), 0);
         }
         function afterSubmit(another) {
-            if (another) { const cur = document.getElementById('fCurrency').value; startNew(); buildCurrencySelect(cur); }
-            else { resetForm(); showPage('expenses'); }
+            const t = formTarget;
+            if (another) { const cur = document.getElementById('fCurrency').value; startNew(); buildCurrencySelect(cur); if (t) setTarget(t); }
+            else { resetForm(); showPage(t && GROUP ? 'groups' : 'expenses'); }
         }
 
         async function saveExpense() {
@@ -1664,15 +1800,16 @@
             const btn = document.getElementById('saveBtn'); const label = btn.textContent; btn.disabled = true; btn.textContent = editingId ? 'Saving…' : 'Submitting…';
             try {
                 if (editingId) {
-                    const old = EXPENSES.find(x => x.id === editingId);
+                    const old = (formTarget ? GROUP.expenses : EXPENSES).find(x => x.id === editingId);
                     if (old && old.amount < 0) { v.amount = -v.amount; if (v.billTotal) v.billTotal = -v.billTotal; }   // keep refunds as refunds
-                    const d = await api('/api/expenses/' + editingId, v, 'PATCH');
-                    EXPENSES = EXPENSES.map(x => x.id === editingId ? d.expense : x);
+                    const d = await api(expBase() + '/' + editingId, v, 'PATCH');
+                    if (formTarget) GROUP.expenses = GROUP.expenses.map(x => x.id === editingId ? d.expense : x);
+                    else EXPENSES = EXPENSES.map(x => x.id === editingId ? d.expense : x);
                     editingId = null;
                     showDone(d.expense, true);
                 } else {
-                    const d = await api('/api/expenses', v);
-                    EXPENSES.push(d.expense);
+                    const d = await api(expBase(), v);
+                    (formTarget ? GROUP.expenses : EXPENSES).push(d.expense);
                     try { localStorage.setItem('fmeLastMethod', v.payment); } catch {}
                     rememberCurrency(v.currency);
                     showDone(d.expense, false);
@@ -1962,26 +2099,28 @@
         }
         function money0(v) { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: BASE, maximumFractionDigits: 0 }).format(v); }
 
-        function ledgerHTML(list, withDelete, emptyHTML) {
+        function ledgerHTML(list, withDelete, emptyHTML, ctx) {
             if (!list.length) return emptyHTML;
+            ctx = ctx || HH_CTX;
             const groups = [];
             list.forEach(e => { const g = groups[groups.length - 1]; if (g && g.d === e.date) g.items.push(e); else groups.push({ d: e.date, items: [e] }); });
             return groups.map(g =>
                 '<div class="day"><span>' + dayLabel(g.d) + '</span><span class="num">' + fmt(sumBase(g.items).total, BASE) + '</span></div>' +
                 g.items.map(e => {
-                    const conv = (e.splitWays > 1 && e.billTotal ? '<small class="split">÷' + e.splitWays + ' of ' + fmt(e.billTotal, e.currency) + '</small>' : '') +
+                    const conv = (e.splitWays > 1 && e.billTotal ? '<small class="split-note">÷' + e.splitWays + ' of ' + fmt(e.billTotal, e.currency) + '</small>' : '') +
                         (e.currency !== BASE && toBase(e.amount, e.currency) !== null ? '<small>≈ ' + fmt(toBase(e.amount, e.currency), BASE) + '</small>' : '');
                     const sub = [e.category, e.payment].filter(Boolean).map(esc).join(', ');
-                    const who = multi() && !scopeId() ? '<span class="who"><span class="mini-av" style="background:' + avColor(e.userId) + '">' + initials(memberById(e.userId).name) + '</span>' + esc(firstName(e.userId)) + '</span>' : '';
-                    const can = canDelete(e);
-                    return '<div class="row' + (withDelete ? '' : ' no-del') + (can ? ' editable" onclick="openEdit(\'' + e.id + '\')" title="Edit expense' : '') + '">' + catIcon(e.category) +
+                    const who = ctx.showWho() ? '<span class="who"><span class="mini-av" style="background:' + ctx.color(e.userId) + '">' + initials(ctx.member(e.userId).name) + '</span>' + esc(ctx.first(e.userId)) + '</span>' : '';
+                    const can = ctx.can(e);
+                    return '<div class="row' + (withDelete ? '' : ' no-del') + (can ? ' editable" onclick="' + ctx.edit + '(\'' + e.id + '\')" title="Edit expense' : '') + '">' + catIcon(e.category) +
                         '<div class="row-main"><div class="row-title">' + (esc(e.note) || esc(e.category)) + (e.receiptId ? '<span class="row-clip" title="Receipt attached"><svg class="ic"><use href="#i-clip"/></svg></span>' : '') + '</div><div class="row-sub">' + who + sub + '</div></div>' +
                         '<div class="row-amt' + (e.amount < 0 ? ' refund' : '') + '">' + fmt(e.amount, e.currency) + conv + '</div>' +
-                        (withDelete ? (can ? '<div class="row-acts"><button class="row-edit" onclick="event.stopPropagation();openEdit(\'' + e.id + '\')" aria-label="Edit expense"><svg class="ic"><use href="#i-edit"/></svg></button>' +
-                            '<button class="row-del" onclick="event.stopPropagation();deleteExpense(\'' + e.id + '\')" aria-label="Delete expense"><svg class="ic"><use href="#i-trash"/></svg></button></div>' : '<span></span>') : '') +
+                        (withDelete ? (can ? '<div class="row-acts"><button class="row-edit" onclick="event.stopPropagation();' + ctx.edit + '(\'' + e.id + '\')" aria-label="Edit expense"><svg class="ic"><use href="#i-edit"/></svg></button>' +
+                            '<button class="row-del" onclick="event.stopPropagation();' + ctx.del + '(\'' + e.id + '\')" aria-label="Delete expense"><svg class="ic"><use href="#i-trash"/></svg></button></div>' : '<span></span>') : '') +
                         '</div>';
                 }).join('')).join('');
         }
+        const HH_CTX = { member: id => memberById(id), color: id => avColor(id), first: id => firstName(id), showWho: () => multi() && !scopeId(), can: e => canDelete(e), edit: 'openEdit', del: 'deleteExpense' };
         const EMPTY_FIRST = '<div class="empty-state"><strong>No expenses yet</strong><p>Add your first one and it will show up here.</p><button class="btn btn-solid" onclick="showPage(\'add\')"><svg class="ic"><use href="#i-plus"/></svg>Add expense</button></div>';
         const EMPTY_FILTER = '<div class="empty-state"><strong>Nothing matches these filters</strong><p>Try a different search, category or month.</p></div>';
 
@@ -1993,6 +2132,11 @@
         function monthName(k, opts) { const [y, m] = k.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleString('en-IN', opts || { month: 'long', year: 'numeric' }); }
 
         function renderAll() {
+            renderAllCore();
+            if (currentPage === 'groups') { if (GROUP) renderGroupDetail(); else renderGroups(); }
+            renderGroupInvites();
+        }
+        function renderAllCore() {
             const all = sorted();
             const now = new Date();
             const thisMonth = now.toISOString().slice(0, 7);
@@ -2084,7 +2228,7 @@
             HH = { household: d.household, members: d.members, pending: d.pending, incoming: d.incoming };
             ME = (d.members || []).find(m => m.you) || ME;
             const sel = document.getElementById('scopeUser'), cur = sel.value;
-            document.getElementById('scopeWrap').hidden = !multi();
+            updateScopeVis();
             sel.innerHTML = '<option value="">Everyone</option>' + members().map(m => '<option value="' + m.id + '"' + (m.id === cur ? ' selected' : '') + '>' + esc(m.you ? 'Just me' : m.name.split(' ')[0]) + '</option>').join('');
             if (!members().some(m => m.id === cur)) sel.value = '';
             renderHousehold();
@@ -2159,6 +2303,237 @@
             try { setHousehold(await api('/api/household', { name: n.trim() }, 'PATCH')); } catch (e) { alert(e.message); }
         }
 
+
+        // ---------- travel groups ----------
+        let GROUPS = [], GROUP_INV = [], GROUP = null, formTarget = null, currentPage = 'dashboard';
+        let gFilter = { cat: '', person: '', q: '' };
+        function gName() { return GROUP ? GROUP.group.name : 'the group'; }
+        function expBase() { return formTarget ? '/api/groups/' + formTarget + '/expenses' : '/api/expenses'; }
+        function gPeopleAll() { return GROUP ? [...GROUP.members, ...GROUP.former] : []; }
+        function gMember(id) { return gPeopleAll().find(m => m.id === id) || { id, name: 'Former member' }; }
+        function gColor(id) { const i = gPeopleAll().findIndex(m => m.id === id); return AV_COLORS[(i < 0 ? 7 : i) % AV_COLORS.length]; }
+        function gFirst(id) { const m = gMember(id); return m.you ? 'You' : (m.name || '').split(' ')[0]; }
+        function gCan(e) { return e.userId === (ME && ME.id) || !!(GROUP && GROUP.group.isOwner); }
+        const G_CTX = { member: gMember, color: gColor, first: gFirst, showWho: () => !gFilter.person && gPeopleAll().length > 1, can: gCan, edit: 'openGroupEdit', del: 'deleteGroupExpense' };
+        function updateScopeVis() {
+            const el = document.getElementById('scopeWrap');
+            if (el) el.hidden = !multi() || currentPage === 'groups' || (currentPage === 'add' && !!formTarget);
+        }
+        function setTarget(gid) {
+            formTarget = gid && GROUP && GROUP.group.id === gid ? gid : null;
+            const note = document.getElementById('targetNote');
+            note.hidden = !formTarget;
+            if (formTarget) {
+                document.getElementById('targetText').innerHTML = 'Adding to <b>' + esc(gName()) + '</b>. It stays in this group and doesn’t count in your daily expenses.';
+                if (!editingId) {
+                    document.getElementById('pageTitle').textContent = 'Add group expense';
+                    document.getElementById('pageSubtitle').textContent = gName();
+                }
+            }
+            document.querySelectorAll('.nav-menu button').forEach(b => b.classList.toggle('active', b.dataset.page === (formTarget ? 'groups' : currentPage)));
+            updateScopeVis();
+        }
+        function topAddClick() { if (currentPage === 'groups' && GROUP) startGroupAdd(); else showPage('add'); }
+        function startGroupAdd() { if (!GROUP) return; const gid = GROUP.group.id; showPage('add'); setTarget(gid); }
+
+        async function loadGroups() {
+            try { const d = await api('/api/groups'); GROUPS = d.groups; GROUP_INV = d.incoming; } catch (e) { return false; }
+            if (currentPage === 'groups' && !GROUP) renderGroups();
+            renderGroupInvites();
+            return true;
+        }
+        async function openGroup(id) {
+            try { GROUP = await api('/api/groups/' + id); } catch (e) { alert(e.message); return loadGroups(); }
+            gFilter = { cat: '', person: '', q: '' }; document.getElementById('gSearch').value = '';
+            showPage('groups');
+        }
+        async function reloadGroup() {
+            if (!GROUP) return loadGroups();
+            try { GROUP = await api('/api/groups/' + GROUP.group.id); }
+            catch (e) { if (e.status === 404) { GROUP = null; await loadGroups(); } else return false; }
+            if (currentPage === 'groups') renderGroupsPage();
+            return true;
+        }
+        function openGroups() { GROUP = null; showPage('groups'); }
+        function closeGroup() { GROUP = null; showPage('groups'); }
+
+        function renderGroupsPage() {
+            document.getElementById('grpListView').hidden = !!GROUP;
+            document.getElementById('grpDetailView').hidden = !GROUP;
+            if (GROUP) {
+                const n = GROUP.members.length;
+                document.getElementById('pageTitle').textContent = GROUP.group.name;
+                document.getElementById('pageSubtitle').textContent = 'Travel group, ' + n + (n === 1 ? ' person' : ' people') + '. Separate from your daily expenses';
+                renderGroupDetail();
+            } else renderGroups();
+            document.getElementById('topAdd').style.visibility = GROUP ? '' : 'hidden';
+        }
+
+        function groupInviteCards() {
+            return GROUP_INV.map(i =>
+                '<div class="invite-card"><span class="ic-wrap"><svg class="ic"><use href="#c-travel"/></svg></span>' +
+                '<div class="txt"><strong>' + esc(i.from) + ' added you to ' + esc(i.group) + '</strong>' +
+                '<span>' + i.members + ' ' + (i.members === 1 ? 'person' : 'people') + ' in this travel group. What you add there stays in the group, separate from your daily expenses.</span></div>' +
+                '<div class="acts"><button class="btn btn-quiet" onclick="answerGroupInvite(\'' + i.id + '\',\'decline\')">Decline</button><button class="btn btn-solid" onclick="answerGroupInvite(\'' + i.id + '\',\'accept\')">Join group</button></div></div>').join('');
+        }
+        function renderGroupInvites() {
+            const html = groupInviteCards();
+            const a = document.getElementById('groupInvites'), b = document.getElementById('groupInvites2');
+            if (a) a.innerHTML = html; if (b) b.innerHTML = html;
+        }
+        async function answerGroupInvite(id, action) {
+            try {
+                const d = await api('/api/group-invites/' + id + '/' + action, {});
+                if (action === 'accept') { GROUP = d; gFilter = { cat: '', person: '', q: '' }; showPage('groups'); }
+            } catch (e) { alert(e.message); }
+            loadGroups();
+        }
+
+        function totalINR(t) { let s = 0; Object.entries(t || {}).forEach(([c, v]) => { const b = toBase(v, c); if (b !== null) s += b; }); return s; }
+        function renderGroups() {
+            const el = document.getElementById('grpCards');
+            if (!GROUPS.length) {
+                el.innerHTML = '<div class="empty-state panel" style="grid-column:1/-1"><strong>No groups yet</strong><p>Create one for your next trip, then add the people you’re travelling with.</p></div>';
+                return;
+            }
+            const list = GROUPS.slice().sort((a, b) => String(b.lastDate || '').localeCompare(String(a.lastDate || '')) || String(b.createdAt).localeCompare(String(a.createdAt)));
+            el.innerHTML = list.map(g => {
+                const n = g.members.length;
+                return '<button class="grp-card" onclick="openGroup(\'' + g.id + '\')">' +
+                    '<span class="grp-ic"><svg class="ic"><use href="#c-travel"/></svg></span>' +
+                    '<div class="grp-main"><div class="grp-name">' + esc(g.name) + '</div>' +
+                    '<div class="grp-sub">' + n + (n === 1 ? ' person' : ' people') + ', ' + g.count + (g.count === 1 ? ' expense' : ' expenses') + (g.lastDate ? ', last ' + esc(dayLabel(g.lastDate)) : '') + '</div>' +
+                    '<div class="grp-avs">' + g.members.slice(0, 6).map((m, i) => '<span class="mini-av" title="' + esc(m.name) + '" style="background:' + AV_COLORS[i % AV_COLORS.length] + '">' + initials(m.name) + '</span>').join('') + '</div></div>' +
+                    '<div class="grp-amt">' + money0(totalINR(g.totals)) + '<small>total</small></div></button>';
+            }).join('');
+        }
+
+        function gSorted() { return (GROUP ? GROUP.expenses : []).slice().sort((a, b) => b.date.localeCompare(a.date) || String(b.createdAt).localeCompare(String(a.createdAt))); }
+        function gFiltered() {
+            const q = gFilter.q.trim().toLowerCase();
+            return gSorted().filter(e => (!gFilter.person || e.userId === gFilter.person) && (!gFilter.cat || e.category === gFilter.cat) && (!q || (e.note || '').toLowerCase().includes(q)));
+        }
+        function setGCat(c) { gFilter.cat = gFilter.cat === c ? '' : c; renderGroupDetail(); }
+        function setGPerson(id) { gFilter.person = gFilter.person === id ? '' : id; renderGroupDetail(); }
+
+        function renderGroupDetail() {
+            if (!GROUP) return;
+            const g = GROUP, all = gSorted(), people = gPeopleAll();
+            const scoped = all.filter(e => !gFilter.person || e.userId === gFilter.person);
+            const total = sumBase(scoped).total, grand = sumBase(all).total;
+            const dates = all.map(e => e.date).sort();
+            document.getElementById('gHeroLabel').textContent = gFilter.person ? (gFirst(gFilter.person) === 'You' ? 'You added' : gFirst(gFilter.person) + ' added') : 'Group total';
+            document.getElementById('gTotal').textContent = fmt(total, BASE);
+            document.getElementById('gHeroSub').textContent = all.length
+                ? scoped.length + (scoped.length === 1 ? ' expense' : ' expenses') + (dates.length ? ', ' + (dates[0] === dates[dates.length - 1] ? dayLabel(dates[0]) : dayLabel(dates[0]) + ' to ' + dayLabel(dates[dates.length - 1])) : '')
+                : 'No expenses yet. Tap Add expense to log the first one.';
+            document.getElementById('gFactPeople').textContent = g.members.length;
+            document.getElementById('gFactPer').textContent = money0(grand / Math.max(1, g.members.length));
+            document.getElementById('gFactMine').textContent = money0(sumBase(all.filter(e => ME && e.userId === ME.id)).total);
+
+            const by = {}; all.forEach(e => { const v = toBase(e.amount, e.currency); if (v !== null) by[e.userId] = (by[e.userId] || 0) + v; });
+            const shown = people.filter(m => !m.former || by[m.id]);
+            document.getElementById('gPeople').hidden = shown.length < 2;
+            document.getElementById('gPeople').innerHTML = shown.map(m => [m, by[m.id] || 0]).sort((a, b) => b[1] - a[1]).map(([m, v]) =>
+                '<button class="person' + (gFilter.person === m.id ? ' on' : '') + '" onclick="setGPerson(\'' + m.id + '\')" title="Show only ' + esc(m.you ? 'your' : m.name.split(' ')[0] + '’s') + ' expenses">' +
+                '<span class="avatar" style="background:' + gColor(m.id) + '">' + initials(m.name) + '</span>' + esc(m.you ? 'You' : m.name.split(' ')[0]) +
+                ' <b>' + money0(v) + '</b><em>' + (grand > 0 ? Math.round(v / grand * 100) : 0) + '%</em></button>').join('');
+
+            // category filter with amounts (for the selected person, if any)
+            const cats = byCategory(scoped);
+            if (gFilter.cat && !cats.some(c => c[0] === gFilter.cat)) gFilter.cat = '';
+            document.getElementById('gCatHint').hidden = !cats.length;
+            document.getElementById('gCats').innerHTML = cats.length
+                ? '<button class="cat-chip all' + (gFilter.cat ? '' : ' on') + '" onclick="setGCat(\'\')">All <b>' + money0(total) + '</b></button>' +
+                  cats.map(([c, v]) => '<button class="cat-chip' + (gFilter.cat === c ? ' on' : '') + '" onclick="setGCat(\'' + c.replace(/'/g, "\\'") + '\')">' + catIcon(c) + esc(c) + ' <b>' + money0(v) + '</b></button>').join('')
+                : '<div class="muted">Categories will appear here as expenses are added.</div>';
+
+            const sel = document.getElementById('gPerson');
+            sel.innerHTML = '<option value="">Everyone</option>' + people.filter(m => !m.former || by[m.id]).map(m => '<option value="' + m.id + '"' + (gFilter.person === m.id ? ' selected' : '') + '>' + esc(m.you ? 'Just me' : m.name) + (m.former ? ' (left)' : '') + '</option>').join('');
+            sel.value = gFilter.person;
+
+            const f = gFiltered();
+            const filt = gFilter.cat || gFilter.person || gFilter.q.trim();
+            document.getElementById('gSum').innerHTML = all.length ? f.length + (f.length === 1 ? ' expense' : ' expenses') + (filt ? ' match' : '') + ', total <b>' + fmt(sumBase(f).total, BASE) + '</b>' : '';
+            document.getElementById('gList').innerHTML = ledgerHTML(f, true, all.length
+                ? '<div class="empty-state"><strong>Nothing matches these filters</strong><p>Try another category or person.</p></div>'
+                : '<div class="empty-state"><strong>No expenses in this group yet</strong><p>Add the first one: a cab, hotel, dinner or tickets.</p><button class="btn btn-solid" onclick="startGroupAdd()"><svg class="ic"><use href="#i-plus"/></svg>Add expense</button></div>', G_CTX);
+
+            // people panel
+            const owner = g.members.find(m => m.role === 'owner');
+            document.getElementById('gMeta').textContent = g.members.length + (g.members.length === 1 ? ' person' : ' people') + (owner && !g.group.isOwner ? ', created by ' + owner.name.split(' ')[0] : '');
+            document.getElementById('gRenameBtn').hidden = !g.group.isOwner;
+            document.getElementById('gMembers').innerHTML = g.members.map(m =>
+                '<div class="member"><span class="avatar" style="background:' + gColor(m.id) + '">' + initials(m.name) + '</span>' +
+                '<div style="min-width:0"><div class="member-name">' + esc(m.name) + (m.you ? ' <span class="badge">You</span>' : '') + (m.role === 'owner' ? ' <span class="badge owner">Created it</span>' : '') + '</div>' +
+                '<div class="member-sub">' + esc([m.email, m.phone].filter(Boolean).join(', ')) + '</div></div>' +
+                (g.group.isOwner && !m.you ? '<button class="btn-danger-quiet" onclick="removeGroupMember(\'' + m.id + '\')">Remove</button>' : '<span></span>') + '</div>').join('') +
+                g.former.map(m => '<div class="member former"><span class="avatar" style="background:#9AA39C">' + initials(m.name) + '</span><div><div class="member-name">' + esc(m.name) + ' <span class="badge">Left</span></div><div class="member-sub">Their expenses stay in the group</div></div><span></span></div>').join('');
+            document.getElementById('gFoot').innerHTML = '<button class="btn-danger-quiet" onclick="leaveGroup()">Leave group</button>' + (g.group.isOwner ? ' <button class="btn-danger-quiet" onclick="deleteGroup()">Delete group</button>' : '');
+            document.getElementById('gPending').innerHTML = g.pending.length ? '<div class="pending"><h3>Waiting to join</h3>' + g.pending.map(i =>
+                '<div class="pending-row"><span>' + esc(i.to) + '<small>Invited ' + new Date(i.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + '</small></span>' +
+                (i.canCancel ? '<button class="link-btn" onclick="cancelGroupInvite(\'' + i.id + '\')">Cancel</button>' : '') + '</div>').join('') + '</div>' : '';
+        }
+
+        async function createGroup() {
+            const el = document.getElementById('ngName'), name = el.value.trim();
+            if (name.length < 2) { flash('ngMsg', 'Give the group a name, like “Goa trip”.', true); el.focus(); return; }
+            try {
+                GROUP = await api('/api/groups', { name }); el.value = ''; flash('ngMsg', '');
+                gFilter = { cat: '', person: '', q: '' };
+                showPage('groups'); loadGroups();
+                setTimeout(() => document.getElementById('gInvite').focus(), 50);
+            } catch (e) { flash('ngMsg', e.message, true); }
+        }
+        async function sendGroupInvite() {
+            const el = document.getElementById('gInvite'), v = el.value.trim();
+            if (!v) return flash('gMsg', 'Enter a mobile number or email.', true);
+            try {
+                const d = await api('/api/groups/' + GROUP.group.id + '/invite', { identifier: v });
+                GROUP = d; el.value = ''; renderGroupDetail();
+                flash('gMsg', d.invitedHasAccount ? 'Added. They’ll see the invite next time they open Find My Expense.' : 'Saved. They’ll see the invite as soon as they sign up with ' + v + '.');
+                const text = 'Join our travel group "' + GROUP.group.name + '" on Find My Expense so we can track the trip’s expenses together. Sign up or log in at https://findmyexpense.com with ' + v + ' and accept the invite.';
+                document.getElementById('gShare').innerHTML = '<div class="share-box">Let them know:<br><em>' + esc(text) + '</em><br><button class="btn btn-quiet" id="gShareBtn"><svg class="ic"><use href="#i-share"/></svg>' + (navigator.share ? 'Share' : 'Copy message') + '</button></div>';
+                document.getElementById('gShareBtn').onclick = async () => {
+                    try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); document.getElementById('gShareBtn').lastChild.textContent = 'Copied'; } } catch (e) {}
+                };
+            } catch (e) { flash('gMsg', e.message, true); }
+        }
+        async function cancelGroupInvite(id) { try { GROUP = await api('/api/groups/' + GROUP.group.id + '/invite/' + id, null, 'DELETE'); renderGroupDetail(); } catch (e) { alert(e.message); } }
+        async function removeGroupMember(uid) {
+            const m = gMember(uid);
+            if (!confirm('Remove ' + m.name + ' from ' + gName() + '? Expenses they added stay in the group.')) return;
+            try { GROUP = await api('/api/groups/' + GROUP.group.id + '/members/' + uid, null, 'DELETE'); renderGroupDetail(); } catch (e) { alert(e.message); }
+        }
+        async function leaveGroup() {
+            const last = GROUP.members.length === 1;
+            if (!confirm(last ? 'You’re the only person in ' + gName() + '. Leaving deletes the group and its expenses. Continue?' : 'Leave ' + gName() + '? Expenses you added stay in the group for the others.')) return;
+            try { await api('/api/groups/' + GROUP.group.id + '/leave', {}); GROUP = null; showPage('groups'); } catch (e) { alert(e.message); }
+        }
+        async function deleteGroup() {
+            if (!confirm('Delete ' + gName() + ' for everyone? All ' + GROUP.expenses.length + ' expenses in it will be deleted. This can’t be undone.')) return;
+            try { await api('/api/groups/' + GROUP.group.id, null, 'DELETE'); GROUP = null; showPage('groups'); } catch (e) { alert(e.message); }
+        }
+        async function renameGroup() {
+            const n = prompt('Group name', GROUP.group.name);
+            if (!n || n.trim() === GROUP.group.name) return;
+            try { GROUP = await api('/api/groups/' + GROUP.group.id, { name: n.trim() }, 'PATCH'); renderGroupsPage(); loadGroups(); } catch (e) { alert(e.message); }
+        }
+        async function deleteGroupExpense(id) {
+            if (!confirm('Delete this expense from ' + gName() + '? Everyone in the group will stop seeing it.')) return;
+            try { await api('/api/groups/' + GROUP.group.id + '/expenses/' + id, null, 'DELETE'); GROUP.expenses = GROUP.expenses.filter(e => e.id !== id); renderGroupDetail(); }
+            catch (e) { alert(e.message); }
+        }
+        function exportGroupCSV() {
+            const rows = [['Date', 'Description', 'Category', 'Paid with', 'Amount', 'Currency', 'Bill total', 'Split ways', 'Added by']];
+            gFiltered().forEach(e => rows.push([e.date, e.note, e.category, e.payment, e.amount, e.currency, e.splitWays > 1 ? e.billTotal : '', e.splitWays > 1 ? e.splitWays : '', gMember(e.userId).name]));
+            const csv = rows.map(r => r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = (GROUP.group.name.replace(/[^\w\- ]+/g, '').trim() || 'group') + '.csv';
+            a.click();
+        }
+
         const PAGES = {
             dashboard: ['Overview', () => currentFirst ? 'Hi ' + currentFirst + ', here’s your month so far' : ''],
             add: ['Add expense', () => 'Record a purchase, bill or transfer'],
@@ -2166,21 +2541,26 @@
             analytics: ['Analytics', () => 'How your spending breaks down'],
             account: ['Account', () => 'Your profile and sign-in options'],
             household: ['Household', () => 'Share expenses with the people you live with'],
+            groups: ['Travel groups', () => 'Trips and outings, kept separate from your daily expenses'],
         };
         function showPage(page) {
             document.querySelectorAll('.view').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
             document.querySelectorAll('.nav-menu button, .me-actions button[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+            currentPage = page;
             document.getElementById('pageTitle').textContent = PAGES[page][0];
             document.getElementById('pageSubtitle').textContent = PAGES[page][1]();
-            document.getElementById('topAdd').style.visibility = page === 'add' ? 'hidden' : '';
-            document.getElementById('refreshBtn').hidden = !['dashboard', 'expenses', 'analytics'].includes(page);
+            document.getElementById('topAdd').style.visibility = page === 'add' || (page === 'groups' && !GROUP) ? 'hidden' : '';
+            document.getElementById('refreshBtn').hidden = !['dashboard', 'expenses', 'analytics', 'groups'].includes(page);
             if (page === 'add') {
+                setTarget(null);
                 if (editingId || !document.getElementById('addDone').hidden) resetForm();
                 if (!document.getElementById('fDate').value) document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
                 flash('formMsg', '');
                 setTimeout(() => document.getElementById('fAmount').focus(), 0);
             } else if (editingId) resetForm();
             if (page === 'household') refreshHousehold();
+            if (page === 'groups') { renderGroupsPage(); if (!GROUP) loadGroups(); }
+            updateScopeVis();
             window.scrollTo(0, 0);
         }
 
