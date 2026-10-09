@@ -127,25 +127,35 @@ function authUser(req) {
   return p ? db.users.find(u => u.id === p.uid) : null;
 }
 
-// ================= PHONE OTP =================
-// Provider: 2Factor.in when TWOFACTOR_API_KEY is set (flyctl secrets set TWOFACTOR_API_KEY=...).
-// Without a key the app runs in TEST MODE: no SMS is sent and the code is shown on screen.
-const TWOFACTOR_KEY = process.env.TWOFACTOR_API_KEY || '';
-const TEST_MODE = !TWOFACTOR_KEY;
+// ================= EMAIL CODES (sign up / log in) =================
+// Codes are emailed with Resend when RESEND_API_KEY is set (flyctl secrets set RESEND_API_KEY=...).
+// Locally, without a key, the app runs in TEST MODE: nothing is emailed and the code is shown on screen.
+// In production a missing key never falls back to test mode (that would let anyone log in as anyone).
+const RESEND_KEY = process.env.RESEND_API_KEY || '';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'Find My Expense <login@findmyexpense.com>';
+const IS_PROD = process.env.NODE_ENV === 'production';
+const TEST_MODE = !RESEND_KEY && !IS_PROD;
+const EMAIL_READY = !!RESEND_KEY || TEST_MODE;
 const OTP_TTL_MS = 10 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 30 * 1000;
 const MAX_SENDS_PER_HOUR = 5;
 const MAX_VERIFY_ATTEMPTS = 5;
 const MAX_SENDS_PER_IP_HOUR = 20;
 
-const otpStore = new Map();   // phone -> { code?, sessionId?, expiresAt, attempts, sends: [timestamps] }
+const otpStore = new Map();   // email -> { code, expiresAt, attempts, purpose, sends: [timestamps] }
 const ipSends = new Map();    // ip -> [timestamps]
 
+// Phone numbers are no longer used to sign in, but older accounts have one and invites may still use it
 function normalizePhone(p) {
   const digits = String(p || '').replace(/\D/g, '').replace(/^(91|0)(?=[6-9]\d{9}$)/, '');
   return /^[6-9]\d{9}$/.test(digits) ? digits : null;
 }
+function normalizeEmail(e) {
+  const v = String(e || '').trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) && v.length <= 254 ? v : null;
+}
 function recent(list, windowMs) { const now = Date.now(); return (list || []).filter(t => now - t < windowMs); }
+function maskEmail(e) { const [u, d] = String(e).split('@'); return (u.length <= 2 ? u[0] + '•' : u.slice(0, 2) + '•••') + '@' + d; }
 
 setInterval(() => {               // housekeeping
   const now = Date.now();
@@ -153,89 +163,81 @@ setInterval(() => {               // housekeeping
   for (const [k, v] of ipSends) { const r = recent(v, 3600e3); r.length ? ipSends.set(k, r) : ipSends.delete(k); }
 }, 10 * 60 * 1000).unref();
 
-app.get('/api/otp/status', (req, res) => res.json({ testMode: TEST_MODE, persistent: PERSISTENT, receipts: !!(process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY), receiptProvider: process.env.GEMINI_API_KEY ? 'gemini' : process.env.ANTHROPIC_API_KEY ? 'claude' : null }));
+async function emailCode(to, code, purpose) {
+  const what = purpose === 'login' ? 'log in to' : 'finish signing up for';
+  const html = `<div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:440px;margin:0 auto;padding:28px 24px;color:#16201A">
+    <div style="font-size:18px;font-weight:700;margin-bottom:18px">Find My Expense</div>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 16px">Use this code to ${what} Find My Expense:</p>
+    <div style="font-size:32px;font-weight:700;letter-spacing:8px;background:#E6F1E9;color:#1F5A38;border-radius:12px;padding:16px;text-align:center">${code}</div>
+    <p style="font-size:13px;line-height:1.5;color:#66706A;margin:18px 0 0">It expires in 10 minutes. If you didn’t ask for this, you can ignore this email; no one can sign in without the code.</p>
+  </div>`;
+  const r = await fetch((process.env.RESEND_BASE_URL || 'https://api.resend.com') + '/emails', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject: code + ' is your Find My Expense code',
+      html, text: `Your Find My Expense code is ${code}. It expires in 10 minutes. If you didn't ask for it, ignore this email.` }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error('Resend ' + r.status + ': ' + (d.message || d.name || '')); }
+}
+
+app.get('/api/otp/status', (req, res) => res.json({ testMode: TEST_MODE, emailReady: EMAIL_READY, persistent: PERSISTENT, receipts: !!(process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY), receiptProvider: process.env.GEMINI_API_KEY ? 'gemini' : process.env.ANTHROPIC_API_KEY ? 'claude' : null }));
 
 app.post('/api/otp/send', async (req, res) => {
-  const phone = normalizePhone(req.body && req.body.phone);
-  if (!phone) return res.status(400).json({ error: 'Enter a valid 10-digit Indian mobile number.' });
+  const email = normalizeEmail(req.body && req.body.email);
+  if (!email) return res.status(400).json({ error: 'Enter a valid email address.' });
+  if (!EMAIL_READY) return res.status(503).json({ error: 'Email sign-in isn’t set up yet. Log in with your password for now.' });
   const purpose = req.body.purpose === 'login' ? 'login' : 'signup';
-  if (purpose === 'signup' && findByPhone(phone)) return res.status(409).json({ error: 'This number is already registered. Please log in instead.', code: 'EXISTS' });
-  if (purpose === 'login' && !findByPhone(phone)) return res.status(404).json({ error: 'No account found for this number. Please sign up first.', code: 'NOT_FOUND' });
+  if (purpose === 'signup' && findByEmail(email)) return res.status(409).json({ error: 'This email is already registered. Please log in instead.', code: 'EXISTS' });
+  if (purpose === 'login' && !findByEmail(email)) return res.status(404).json({ error: 'No account found for this email. Please sign up first.', code: 'NOT_FOUND' });
 
   const ip = clientIp(req);
   const ipList = recent(ipSends.get(ip), 3600e3);
-  if (ipList.length >= MAX_SENDS_PER_IP_HOUR) return res.status(429).json({ error: 'Too many OTP requests. Try again later.' });
+  if (ipList.length >= MAX_SENDS_PER_IP_HOUR) return res.status(429).json({ error: 'Too many code requests. Try again later.' });
 
-  const entry = otpStore.get(phone) || { sends: [] };
+  const entry = otpStore.get(email) || { sends: [] };
   entry.sends = recent(entry.sends, 3600e3);
   const last = entry.sends[entry.sends.length - 1];
   if (last && Date.now() - last < RESEND_COOLDOWN_MS) {
-    return res.status(429).json({ error: 'Please wait before requesting another OTP.', retryIn: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - last)) / 1000) });
+    return res.status(429).json({ error: 'Please wait before requesting another code.', retryIn: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - last)) / 1000) });
   }
-  if (entry.sends.length >= MAX_SENDS_PER_HOUR) return res.status(429).json({ error: 'Too many OTPs for this number. Try again in an hour.' });
+  if (entry.sends.length >= MAX_SENDS_PER_HOUR) return res.status(429).json({ error: 'Too many codes for this email. Try again in an hour.' });
 
+  const code = String(crypto.randomInt(0, 1e6)).padStart(6, '0');
   try {
-    let devCode;
-    if (TEST_MODE) {
-      entry.code = String(crypto.randomInt(0, 1e6)).padStart(6, '0');
-      entry.sessionId = null;
-      devCode = entry.code;
-      console.log(`🧪 TEST MODE OTP for ••${phone.slice(-4)}: ${entry.code}`);
-    } else {
-      const r = await fetch(`https://2factor.in/API/V1/${TWOFACTOR_KEY}/SMS/+91${phone}/AUTOGEN`);
-      const d = await r.json().catch(() => ({}));
-      if (d.Status !== 'Success') {
-        console.error('2Factor send failed:', d);
-        return res.status(502).json({ error: 'Could not send OTP right now. Please try again.' });
-      }
-      entry.sessionId = d.Details;
-      entry.code = null;
-    }
-    entry.expiresAt = Date.now() + OTP_TTL_MS;
-    entry.attempts = 0;
-    entry.purpose = purpose;
-    entry.sends.push(Date.now());
-    otpStore.set(phone, entry);
-    ipList.push(Date.now()); ipSends.set(ip, ipList);
-    res.json({ sent: true, testMode: TEST_MODE, devCode, resendIn: RESEND_COOLDOWN_MS / 1000 });
+    if (TEST_MODE) console.log(`🧪 TEST MODE code for ${maskEmail(email)}: ${code}`);
+    else { await emailCode(email, code, purpose); console.log(`✉️  Code emailed to ${maskEmail(email)}`); }
   } catch (err) {
-    console.error('OTP send error:', err);
-    res.status(500).json({ error: 'Could not send OTP right now. Please try again.' });
+    console.error('✉️  Email send failed:', err.message);
+    return res.status(502).json({ error: 'Couldn’t send the email right now. Please try again in a minute.' });
   }
+  Object.assign(entry, { code, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0, purpose });
+  entry.sends.push(Date.now());
+  otpStore.set(email, entry);
+  ipList.push(Date.now()); ipSends.set(ip, ipList);
+  res.json({ sent: true, testMode: TEST_MODE, devCode: TEST_MODE ? code : undefined, resendIn: RESEND_COOLDOWN_MS / 1000 });
 });
 
-app.post('/api/otp/verify', async (req, res) => {
-  const phone = normalizePhone(req.body && req.body.phone);
+app.post('/api/otp/verify', (req, res) => {
+  const email = normalizeEmail(req.body && req.body.email);
   const otp = String((req.body && req.body.otp) || '').replace(/\D/g, '');
-  if (!phone || otp.length < 4) return res.status(400).json({ error: 'Enter the OTP you received.' });
+  if (!email || otp.length !== 6) return res.status(400).json({ error: 'Enter the 6-digit code from the email.' });
 
-  const entry = otpStore.get(phone);
-  if (!entry || (!entry.code && !entry.sessionId)) return res.status(400).json({ error: 'Request an OTP first.' });
-  if (Date.now() > entry.expiresAt) { entry.code = entry.sessionId = null; return res.status(400).json({ error: 'OTP expired. Request a new one.' }); }
-  if (entry.attempts >= MAX_VERIFY_ATTEMPTS) { entry.code = entry.sessionId = null; return res.status(429).json({ error: 'Too many wrong attempts. Request a new OTP.' }); }
+  const entry = otpStore.get(email);
+  if (!entry || !entry.code) return res.status(400).json({ error: 'Request a code first.' });
+  if (Date.now() > entry.expiresAt) { entry.code = null; return res.status(400).json({ error: 'That code has expired. Request a new one.' }); }
+  if (entry.attempts >= MAX_VERIFY_ATTEMPTS) { entry.code = null; return res.status(429).json({ error: 'Too many wrong attempts. Request a new code.' }); }
   entry.attempts++;
-
-  try {
-    let ok = false;
-    if (entry.code) {
-      ok = otp.length === entry.code.length && crypto.timingSafeEqual(Buffer.from(otp), Buffer.from(entry.code));
-    } else {
-      const r = await fetch(`https://2factor.in/API/V1/${TWOFACTOR_KEY}/SMS/VERIFY/${encodeURIComponent(entry.sessionId)}/${otp}`);
-      const d = await r.json().catch(() => ({}));
-      ok = d.Status === 'Success' && /matched/i.test(d.Details || '');
-    }
-    if (!ok) return res.status(400).json({ error: 'Incorrect OTP.', attemptsLeft: MAX_VERIFY_ATTEMPTS - entry.attempts });
-    entry.code = entry.sessionId = null;   // one-time use
-    if (entry.purpose === 'login') {
-      const u = findByPhone(phone);
-      if (!u) return res.status(404).json({ error: 'No account found for this number.' });
-      return res.json({ verified: true, ...sessionFor(u) });
-    }
-    res.json({ verified: true, phone, signupToken: sign({ t: 'signup', phone }, 20 * 60e3) });
-  } catch (err) {
-    console.error('OTP verify error:', err);
-    res.status(500).json({ error: 'Could not verify OTP right now. Please try again.' });
+  if (!crypto.timingSafeEqual(Buffer.from(otp), Buffer.from(entry.code))) {
+    return res.status(400).json({ error: 'Incorrect code.', attemptsLeft: MAX_VERIFY_ATTEMPTS - entry.attempts });
   }
+  entry.code = null;   // one-time use
+  if (entry.purpose === 'login') {
+    const u = findByEmail(email);
+    if (!u) return res.status(404).json({ error: 'No account found for this email.' });
+    return res.json({ verified: true, ...sessionFor(u) });
+  }
+  res.json({ verified: true, email, signupToken: sign({ t: 'signup', email }, 20 * 60e3) });
 });
 
 
@@ -247,19 +249,16 @@ function noteFail(key) { const l = recent(loginFails.get(key), 15 * 60e3); l.pus
 app.post('/api/signup', (req, res) => {
   const b = req.body || {};
   const name = String(b.name || '').trim().slice(0, 80);
-  const email = String(b.email || '').trim().toLowerCase();
   const password = String(b.password || '');
   const p = verifyToken(b.signupToken, 'signup');
-  if (!p) return res.status(400).json({ error: 'Please verify your phone number again.' });
+  if (!p || !p.email) return res.status(400).json({ error: 'Please verify your email again.' });
   if (name.length < 2) return res.status(400).json({ error: 'Enter your name.' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
   if (password && password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
-  if (findByPhone(p.phone)) return res.status(409).json({ error: 'This number is already registered. Please log in.' });
-  if (findByEmail(email)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
-  const u = { id: crypto.randomUUID(), name, email, phone: p.phone, createdAt: new Date().toISOString() };
+  if (findByEmail(p.email)) return res.status(409).json({ error: 'This email is already registered. Please log in.' });
+  const u = { id: crypto.randomUUID(), name, email: p.email, createdAt: new Date().toISOString() };
   if (password) { const h = hashPassword(password); u.salt = h.salt; u.passwordHash = h.hash; }
   db.users.push(u); newHousehold(u); saveDb();
-  console.log(`👤 New account: ••${u.phone.slice(-4)}`);
+  console.log(`👤 New account: ${maskEmail(u.email)}`);
   res.json(sessionFor(u));
 });
 
@@ -267,11 +266,11 @@ app.post('/api/login/password', (req, res) => {
   const id = String((req.body && req.body.identifier) || '').trim();
   const password = String((req.body && req.body.password) || '');
   const key = id.toLowerCase(), ipKey = 'ip:' + clientIp(req);
-  if (tooManyFails(key) || tooManyFails(ipKey)) return res.status(429).json({ error: 'Too many attempts. Try again in 15 minutes, or log in with OTP.' });
+  if (tooManyFails(key) || tooManyFails(ipKey)) return res.status(429).json({ error: 'Too many attempts. Try again in 15 minutes, or log in with an email code.' });
   const phone = normalizePhone(id);
   const u = phone ? findByPhone(phone) : findByEmail(id);
-  if (u && !u.passwordHash) return res.status(400).json({ error: 'This account has no password yet. Log in with OTP, then set one.', code: 'NO_PASSWORD' });
-  if (!checkPassword(password, u)) { noteFail(key); noteFail(ipKey); return res.status(401).json({ error: 'Incorrect phone/email or password.' }); }
+  if (u && !u.passwordHash) return res.status(400).json({ error: 'This account has no password yet. Log in with an email code, then set one under Account.', code: 'NO_PASSWORD' });
+  if (!checkPassword(password, u)) { noteFail(key); noteFail(ipKey); return res.status(401).json({ error: 'Incorrect email or password.' }); }
   loginFails.delete(key);
   res.json(sessionFor(u));
 });
@@ -286,12 +285,8 @@ app.patch('/api/me', (req, res) => {
   const u = authUser(req);
   if (!u) return res.status(401).json({ error: 'Not logged in' });
   const name = String((req.body && req.body.name) || '').trim().slice(0, 80);
-  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
   if (name.length < 2) return res.status(400).json({ error: 'Enter your name.' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
-  const other = findByEmail(email);
-  if (other && other.id !== u.id) return res.status(409).json({ error: 'This email is used by another account.' });
-  u.name = name; u.email = email; saveDb();
+  u.name = name; saveDb();       // email is the sign-in, so it isn't editable here
   res.json({ user: publicUser(u) });
 });
 
@@ -364,7 +359,7 @@ app.post('/api/household/invite', (req, res) => {
   const raw = String((req.body && req.body.identifier) || '').trim();
   const phone = normalizePhone(raw);
   const email = !phone && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw) ? raw.toLowerCase() : null;
-  if (!phone && !email) return res.status(400).json({ error: 'Enter a 10-digit mobile number or an email address.' });
+  if (!phone && !email) return res.status(400).json({ error: 'Enter a valid email address.' });
   if ((phone && phone === u.phone) || (email && email === u.email)) return res.status(400).json({ error: 'That’s you.' });
   const existing = phone ? findByPhone(phone) : findByEmail(email);
   if (existing && existing.householdId === h.id) return res.status(409).json({ error: (existing.name || 'This person') + ' is already in your household.' });
@@ -795,7 +790,7 @@ app.post('/api/groups/:id/invite', (req, res) => {
   const raw = String((req.body && req.body.identifier) || '').trim();
   const phone = normalizePhone(raw);
   const email = !phone && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw) ? raw.toLowerCase() : null;
-  if (!phone && !email) return res.status(400).json({ error: 'Enter a 10-digit mobile number or an email address.' });
+  if (!phone && !email) return res.status(400).json({ error: 'Enter a valid email address.' });
   if ((phone && phone === u.phone) || (email && email === u.email)) return res.status(400).json({ error: 'That’s you.' });
   const existing = phone ? findByPhone(phone) : findByEmail(email);
   if (existing && g.members.includes(existing.id)) return res.status(409).json({ error: (existing.name || 'This person') + ' is already in this group.' });
@@ -892,6 +887,6 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Find My Expense is LIVE on http://localhost:${PORT}`);
-  console.log(TEST_MODE ? '🧪 OTP TEST MODE (set TWOFACTOR_API_KEY to send real SMS)' : '📱 OTP via 2Factor.in');
+  console.log(RESEND_KEY ? '✉️  Sign-in codes emailed via Resend from ' + EMAIL_FROM : TEST_MODE ? '🧪 TEST MODE: sign-in codes shown on screen (set RESEND_API_KEY to email them)' : '⚠️  RESEND_API_KEY not set: email sign-in is OFF (password login still works)');
   console.log(PERSISTENT ? `💾 Accounts stored in ${USERS_FILE}` : `⚠️  Accounts stored in ${USERS_FILE} — NOT persistent on Fly.io until a volume is mounted at /data`);
 });

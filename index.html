@@ -871,26 +871,24 @@
             <div class="modal-subtitle">Free forever · No credit card</div>
 
             <div class="auth-field"><label for="suName">Full name</label><input id="suName" type="text" autocomplete="name" placeholder="Your name"></div>
-            <div class="auth-field"><label for="suEmail">Email</label><input id="suEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
 
             <div class="auth-field">
-                <label for="suPhone">Mobile number</label>
+                <label for="suEmail">Email</label>
                 <div class="otp-row">
-                    <span class="cc">+91</span>
-                    <input id="suPhone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit mobile" oninput="onPhoneEdit('su')">
-                    <button class="auth-btn-sm" id="suSendBtn" onclick="sendOtp('su')">Send OTP</button>
+                    <input id="suEmail" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com" oninput="onEmailEdit('su')" onkeydown="if(event.key==='Enter')sendOtp('su')">
+                    <button class="auth-btn-sm" id="suSendBtn" onclick="sendOtp('su')">Send code</button>
                 </div>
             </div>
             <div class="auth-field" id="suOtpBox" style="display:none;">
-                <label for="suOtp">Enter OTP</label>
+                <label for="suOtp">Code from the email</label>
                 <div class="otp-row">
                     <input id="suOtp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" onkeydown="if(event.key==='Enter')verifyOtp('su')">
                     <button class="auth-btn-sm" id="suVerifyBtn" onclick="verifyOtp('su')">Verify</button>
                 </div>
             </div>
-            <div class="auth-msg" id="suPhoneMsg"></div>
+            <div class="auth-msg" id="suEmailMsg"></div>
 
-            <div class="auth-field"><label for="suPass">Password <span class="opt">(optional, min 8 characters)</span></label><input id="suPass" type="password" autocomplete="new-password" placeholder="Set a password to log in without OTP"></div>
+            <div class="auth-field"><label for="suPass">Password <span class="opt">(optional, min 8 characters)</span></label><input id="suPass" type="password" autocomplete="new-password" placeholder="Leave empty to use email codes only"></div>
             <div class="auth-field" id="suPass2Box" style="display:none;"><label for="suPass2">Confirm password</label><input id="suPass2" type="password" autocomplete="new-password"></div>
 
             <button class="auth-btn" id="suCreateBtn" onclick="createAccount()" disabled>Create account</button>
@@ -906,33 +904,32 @@
             <div class="modal-subtitle">Log in to your account</div>
 
             <div class="auth-tabs">
-                <button class="active" id="tabOtp" onclick="loginTab('otp')">OTP</button>
+                <button class="active" id="tabOtp" onclick="loginTab('otp')">Email code</button>
                 <button id="tabPass" onclick="loginTab('pass')">Password</button>
             </div>
 
             <div id="loginOtpPane">
                 <div class="auth-field">
-                    <label for="liPhone">Mobile number</label>
+                    <label for="liEmail">Email</label>
                     <div class="otp-row">
-                        <span class="cc">+91</span>
-                        <input id="liPhone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit mobile" oninput="onPhoneEdit('li')">
-                        <button class="auth-btn-sm" id="liSendBtn" onclick="sendOtp('li')">Send OTP</button>
+                        <input id="liEmail" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com" oninput="onEmailEdit('li')" onkeydown="if(event.key==='Enter')sendOtp('li')">
+                        <button class="auth-btn-sm" id="liSendBtn" onclick="sendOtp('li')">Send code</button>
                     </div>
                 </div>
                 <div class="auth-field" id="liOtpBox" style="display:none;">
-                    <label for="liOtp">Enter OTP</label>
+                    <label for="liOtp">Code from the email</label>
                     <input id="liOtp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" onkeydown="if(event.key==='Enter')verifyOtp('li')">
                 </div>
-                <div class="auth-msg" id="liPhoneMsg"></div>
+                <div class="auth-msg" id="liEmailMsg"></div>
                 <button class="auth-btn" id="liVerifyBtn" onclick="verifyOtp('li')" style="display:none;">Verify &amp; log in</button>
             </div>
 
             <div id="loginPassPane" style="display:none;">
-                <div class="auth-field"><label for="lpId">Mobile number or email</label><input id="lpId" type="text" autocomplete="username" placeholder="98xxxxxxxx or you@example.com"></div>
+                <div class="auth-field"><label for="lpId">Email</label><input id="lpId" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
                 <div class="auth-field"><label for="lpPass">Password</label><input id="lpPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')passwordLogin()"></div>
                 <button class="auth-btn" onclick="passwordLogin()">Log in</button>
                 <div class="auth-msg" id="lpMsg"></div>
-                <div class="auth-switch" style="margin-top:8px;">Forgot password? <a href="#" onclick="loginTab('otp');return false;">Log in with OTP</a></div>
+                <div class="auth-switch" style="margin-top:8px;">Forgot password? <a href="#" onclick="loginTab('otp');return false;">Log in with an email code</a></div>
             </div>
 
             <div class="auth-switch">New here? <a href="#" onclick="switchModal('signup');return false;">Create an account</a></div>
@@ -1260,9 +1257,9 @@
                             <h2>Add people</h2>
                             <p class="muted">Anyone in the group can add people. They log in with their own account and add expenses here too.</p>
                             <div class="field" style="margin-top:16px;">
-                                <label class="lbl" for="gInvite">Mobile number or email</label>
+                                <label class="lbl" for="gInvite">Their email</label>
                                 <div class="invite-row">
-                                    <input id="gInvite" type="text" placeholder="98xxxxxxxx or name@example.com" onkeydown="if(event.key==='Enter')sendGroupInvite()">
+                                    <input id="gInvite" type="text" type="email" autocapitalize="off" spellcheck="false" placeholder="name@example.com" onkeydown="if(event.key==='Enter')sendGroupInvite()">
                                     <button class="btn btn-solid" onclick="sendGroupInvite()"><svg class="ic"><use href="#i-send"/></svg>Add</button>
                                 </div>
                             </div>
@@ -1292,9 +1289,9 @@
                         <h2>Invite someone</h2>
                         <p class="muted">They’ll get their own login and name. Everything you both add shows up here, with totals for the whole household.</p>
                         <div class="field" style="margin-top:16px;">
-                            <label class="lbl" for="hhInvite">Mobile number or email</label>
+                            <label class="lbl" for="hhInvite">Their email</label>
                             <div class="invite-row">
-                                <input id="hhInvite" type="text" placeholder="98xxxxxxxx or name@example.com" onkeydown="if(event.key==='Enter')sendInvite()">
+                                <input id="hhInvite" type="text" type="email" autocapitalize="off" spellcheck="false" placeholder="name@example.com" onkeydown="if(event.key==='Enter')sendInvite()">
                                 <button class="btn btn-solid" onclick="sendInvite()"><svg class="ic"><use href="#i-send"/></svg>Invite</button>
                             </div>
                         </div>
@@ -1310,15 +1307,15 @@
                     <div class="panel">
                         <h2>Profile</h2>
                         <div class="field"><label class="lbl" for="pfName">Full name</label><input id="pfName" type="text" autocomplete="name"></div>
-                        <div class="field"><label class="lbl" for="pfEmail">Email</label><input id="pfEmail" type="email" autocomplete="email"></div>
-                        <div class="field"><label class="lbl" for="pfPhone">Mobile number</label><input id="pfPhone" type="text" disabled></div>
+                        <div class="field"><label class="lbl" for="pfEmail">Email <span class="opt">(used to log in)</span></label><input id="pfEmail" type="email" disabled></div>
+                        <div class="field" id="pfPhoneBox"><label class="lbl" for="pfPhone">Mobile number</label><input id="pfPhone" type="text" disabled></div>
                         <div class="form-foot"><span class="form-msg" id="pfMsg" role="status"></span><button class="btn btn-solid" onclick="saveProfile()">Save profile</button></div>
                     </div>
                     <button class="btn btn-quiet get-app" onclick="openInstall()" hidden><svg class="ic"><use href="#i-phone"/></svg>Install the app on this device</button>
                     <button class="btn btn-quiet only-mobile-flex" onclick="logout()"><svg class="ic"><use href="#i-logout"/></svg>Log out</button>
                     <div class="panel">
                         <h2 id="pwTitle">Set a password</h2>
-                        <p class="muted">Log in with your mobile number or email and password, without waiting for an OTP.</p>
+                        <p class="muted">Log in with your email and password, without waiting for a code.</p>
                         <div class="field" id="pwCurBox"><label class="lbl" for="pwCur">Current password</label><input id="pwCur" type="password" autocomplete="current-password"></div>
                         <div class="field"><label class="lbl" for="pwNew">New password</label><input id="pwNew" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
                         <div class="field"><label class="lbl" for="pwNew2">Confirm new password</label><input id="pwNew2" type="password" autocomplete="new-password"></div>
@@ -1424,9 +1421,21 @@
         // ---------- OTP (shared by signup 'su' and login 'li') ----------
         const otpState = { su: { verified: false, token: null, timer: null }, li: { timer: null } };
 
-        function onPhoneEdit(k) {
-            const el = document.getElementById(k + 'Phone');
-            el.value = el.value.replace(/\D/g, '').slice(0, 10);
+        function emailVal(k) { return document.getElementById(k + 'Email').value.trim().toLowerCase(); }
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+        // changing the email after a code was sent/verified starts over
+        function onEmailEdit(k) {
+            if (k === 'su' && (otpState.su.verified || document.getElementById('suOtpBox').style.display !== 'none')) {
+                otpState.su.verified = false; otpState.su.token = null;
+                document.getElementById('suOtpBox').style.display = 'none';
+                const sb = document.getElementById('suSendBtn'); sb.classList.remove('ok'); clearInterval(otpState.su.timer); sb.disabled = false; sb.textContent = 'Send code';
+                setMsg('suEmailMsg', ''); updateCreateBtn();
+            }
+            if (k === 'li' && document.getElementById('liOtpBox').style.display !== 'none') {
+                document.getElementById('liOtpBox').style.display = 'none'; document.getElementById('liVerifyBtn').style.display = 'none';
+                clearInterval(otpState.li.timer); const sb = document.getElementById('liSendBtn'); sb.disabled = false; sb.textContent = 'Send code';
+                setMsg('liEmailMsg', '');
+            }
         }
 
         function startCooldown(k, secs) {
@@ -1435,46 +1444,44 @@
             let left = secs; btn.disabled = true; btn.textContent = 'Resend in ' + left + 's';
             otpState[k].timer = setInterval(() => {
                 left--;
-                if (left <= 0) { clearInterval(otpState[k].timer); btn.disabled = false; btn.textContent = 'Resend OTP'; }
+                if (left <= 0) { clearInterval(otpState[k].timer); btn.disabled = false; btn.textContent = 'Resend code'; }
                 else btn.textContent = 'Resend in ' + left + 's';
             }, 1000);
         }
 
         async function sendOtp(k) {
-            const phone = digits(k + 'Phone');
-            const msgId = k + 'PhoneMsg';
-            if (!/^[6-9]\d{9}$/.test(phone)) return setMsg(msgId, 'Enter a valid 10-digit mobile number.');
+            const email = emailVal(k);
+            const msgId = k + 'EmailMsg';
+            if (!EMAIL_RE.test(email)) return setMsg(msgId, 'Enter a valid email address.');
             const btn = document.getElementById(k + 'SendBtn');
             btn.disabled = true; btn.textContent = 'Sending…';
             try {
-                const d = await api('/api/otp/send', { phone, purpose: k === 'su' ? 'signup' : 'login' });
+                const d = await api('/api/otp/send', { email, purpose: k === 'su' ? 'signup' : 'login' });
                 document.getElementById(k + 'OtpBox').style.display = '';
                 if (k === 'li') document.getElementById('liVerifyBtn').style.display = '';
                 const otpEl = document.getElementById(k + 'Otp'); otpEl.value = ''; otpEl.focus();
-                setMsg(msgId, d.testMode ? 'Test mode (no SMS sent). Your code is ' + d.devCode : 'OTP sent to +91 ' + phone.slice(0, 5) + ' ' + phone.slice(5), d.testMode ? 'info' : 'ok');
+                setMsg(msgId, d.testMode ? 'Test mode (no email sent). Your code is ' + d.devCode : 'Code sent to ' + email + '. Check your inbox (and spam).', d.testMode ? 'info' : 'ok');
                 startCooldown(k, d.resendIn || 30);
             } catch (e) {
-                btn.disabled = false; btn.textContent = 'Send OTP';
+                btn.disabled = false; btn.textContent = 'Send code';
                 if (e.data && e.data.retryIn) startCooldown(k, e.data.retryIn);
                 setMsg(msgId, e.message);
-                if (e.data && e.data.code === 'EXISTS') setMsg(msgId, e.message);
             }
         }
 
         async function verifyOtp(k) {
-            const phone = digits(k + 'Phone'), otp = digits(k + 'Otp');
-            const msgId = k + 'PhoneMsg';
-            if (otp.length < 4) return setMsg(msgId, 'Enter the OTP you received.');
+            const email = emailVal(k), otp = digits(k + 'Otp');
+            const msgId = k + 'EmailMsg';
+            if (otp.length !== 6) return setMsg(msgId, 'Enter the 6-digit code from the email.');
             const btn = document.getElementById(k + 'VerifyBtn'); btn.disabled = true;
             try {
-                const d = await api('/api/otp/verify', { phone, otp });
+                const d = await api('/api/otp/verify', { email, otp });
                 if (k === 'su') {
                     otpState.su.verified = true; otpState.su.token = d.signupToken;
-                    document.getElementById('suPhone').disabled = true;
                     document.getElementById('suOtpBox').style.display = 'none';
                     clearInterval(otpState.su.timer);
                     const sb = document.getElementById('suSendBtn'); sb.textContent = '✓ Verified'; sb.classList.add('ok'); sb.disabled = true;
-                    setMsg(msgId, 'Mobile number verified.', 'ok');
+                    setMsg(msgId, 'Email verified.', 'ok');
                     updateCreateBtn();
                 } else {
                     startSession(d);
@@ -1487,8 +1494,7 @@
         // ---------- signup ----------
         function updateCreateBtn() {
             const name = document.getElementById('suName').value.trim();
-            const email = document.getElementById('suEmail').value.trim();
-            document.getElementById('suCreateBtn').disabled = !(otpState.su.verified && name.length >= 2 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email));
+            document.getElementById('suCreateBtn').disabled = !(otpState.su.verified && name.length >= 2);
             document.getElementById('suPass2Box').style.display = document.getElementById('suPass').value ? '' : 'none';
         }
         async function createAccount() {
@@ -1499,7 +1505,6 @@
             try {
                 const d = await api('/api/signup', {
                     name: document.getElementById('suName').value.trim(),
-                    email: document.getElementById('suEmail').value.trim(),
                     password: pass, signupToken: otpState.su.token
                 });
                 startSession(d);
@@ -1518,7 +1523,7 @@
         }
         async function passwordLogin() {
             const identifier = document.getElementById('lpId').value.trim(), password = document.getElementById('lpPass').value;
-            if (!identifier || !password) return setMsg('lpMsg', 'Enter your mobile/email and password.');
+            if (!identifier || !password) return setMsg('lpMsg', 'Enter your email and password.');
             try { startSession(await api('/api/login/password', { identifier, password })); }
             catch (e) { setMsg('lpMsg', e.message); }
         }
@@ -1553,7 +1558,7 @@
         }
         function showUser(u) {
             document.getElementById('userName').textContent = u.name || '';
-            document.getElementById('userPhone').textContent = u.phone ? '+91 ' + u.phone.slice(0, 5) + ' ' + u.phone.slice(5) : (u.email || '');
+            document.getElementById('userPhone').textContent = u.email || '';
             document.getElementById('userPhone').title = u.email || '';
             document.getElementById('userAvatar').textContent = (u.name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
             const first = (u.name || '').split(' ')[0];
@@ -1567,6 +1572,7 @@
             document.getElementById('pfName').value = u.name || '';
             document.getElementById('pfEmail').value = u.email || '';
             document.getElementById('pfPhone').value = u.phone ? '+91 ' + u.phone : '';
+            document.getElementById('pfPhoneBox').hidden = !u.phone;
             document.getElementById('pwTitle').textContent = u.hasPassword ? 'Change password' : 'Set a password';
             document.getElementById('pwCurBox').style.display = u.hasPassword ? '' : 'none';
             ['pwCur', 'pwNew', 'pwNew2'].forEach(id => document.getElementById(id).value = '');
@@ -1577,7 +1583,7 @@
         function storeUser(user) { const s = getAuth(); s.user = user; localStorage.setItem('fmeSession', JSON.stringify(s)); showUser(user); }
         async function saveProfile() {
             try {
-                const d = await api('/api/me', { name: document.getElementById('pfName').value.trim(), email: document.getElementById('pfEmail').value.trim() }, 'PATCH');
+                const d = await api('/api/me', { name: document.getElementById('pfName').value.trim() }, 'PATCH');
                 storeUser(d.user); flash('pfMsg', 'Profile saved'); refreshHousehold();
             } catch (e) { flash('pfMsg', e.message, true); }
         }
@@ -2270,7 +2276,7 @@
 
         async function sendInvite() {
             const el = document.getElementById('hhInvite'), v = el.value.trim();
-            if (!v) return flash('hhMsg', 'Enter a mobile number or email.', true);
+            if (!v) return flash('hhMsg', 'Enter their email address.', true);
             try {
                 const d = await api('/api/household/invite', { identifier: v });
                 setHousehold(d); el.value = '';
@@ -2487,7 +2493,7 @@
         }
         async function sendGroupInvite() {
             const el = document.getElementById('gInvite'), v = el.value.trim();
-            if (!v) return flash('gMsg', 'Enter a mobile number or email.', true);
+            if (!v) return flash('gMsg', 'Enter their email address.', true);
             try {
                 const d = await api('/api/groups/' + GROUP.group.id + '/invite', { identifier: v });
                 GROUP = d; el.value = ''; renderGroupDetail();
